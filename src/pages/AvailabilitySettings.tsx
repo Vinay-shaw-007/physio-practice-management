@@ -1,0 +1,1944 @@
+// import {
+//     Add as AddIcon,
+//     Delete as DeleteIcon,
+//     Edit as EditIcon,
+//     EventBusy as EventBusyIcon,
+//     Schedule as ScheduleIcon
+// } from '@mui/icons-material';
+// import {
+//     Alert,
+//     Box,
+//     Button,
+//     Card,
+//     CardContent,
+//     FormControlLabel,
+//     Grid,
+//     IconButton,
+//     MenuItem,
+//     Paper,
+//     Switch,
+//     Tab,
+//     Tabs,
+//     TextField,
+//     Typography
+// } from '@mui/material';
+// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+// import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+// import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+// import React, { useEffect, useState } from 'react';
+// import { availabilityService } from '../services/availabilityService';
+// import { useAppSelector } from '../store/store';
+// import { AvailabilitySlot, Unavailability } from '../types';
+
+// const DAYS_OF_WEEK = [
+//     { value: 0, label: 'Sunday', short: 'Sun' },
+//     { value: 1, label: 'Monday', short: 'Mon' },
+//     { value: 2, label: 'Tuesday', short: 'Tue' },
+//     { value: 3, label: 'Wednesday', short: 'Wed' },
+//     { value: 4, label: 'Thursday', short: 'Thu' },
+//     { value: 5, label: 'Friday', short: 'Fri' },
+//     { value: 6, label: 'Saturday', short: 'Sat' },
+// ];
+
+// interface TabPanelProps {
+//     children?: React.ReactNode;
+//     index: number;
+//     value: number;
+// }
+
+// const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
+//     return (
+//         <div hidden={value !== index}>
+//             {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+//         </div>
+//     );
+// };
+
+// const AvailabilitySettings: React.FC = () => {
+//     const { user } = useAppSelector((state) => state.auth);
+//     const [activeTab, setActiveTab] = useState(0);
+//     const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+//     const [unavailability, setUnavailability] = useState<Unavailability[]>([]);
+//     const [loading, setLoading] = useState(true);
+//     const [openDialog, setOpenDialog] = useState(false);
+//     const [editingSlot, setEditingSlot] = useState<AvailabilitySlot | null>(null);
+//     const [openUnavailabilityDialog, setOpenUnavailabilityDialog] = useState(false);
+//     const [editingUnavailability, setEditingUnavailability] = useState<Unavailability | null>(null);
+
+//     // Form states
+//     const [newSlot, setNewSlot] = useState({
+//         dayOfWeek: 1,
+//         startTime: '09:00',
+//         endTime: '17:00',
+//         isRecurring: true,
+//         slotDuration: 30,
+//         maxAppointmentsPerSlot: 1,
+//     });
+
+//     const [newUnavailability, setNewUnavailability] = useState({
+//         title: '',
+//         startDate: new Date(),
+//         endDate: new Date(),
+//         reason: '',
+//         isAllDay: true,
+//     });
+
+//     useEffect(() => {
+//         loadData();
+//     }, []);
+
+//     const loadData = async () => {
+//         setLoading(true);
+//         try {
+//             const [slots, unavail] = await Promise.all([
+//                 availabilityService.getAvailabilitySlots(user?.id || '1'),
+//                 availabilityService.getUnavailability(user?.id || '1'),
+//             ]);
+//             setAvailabilitySlots(slots);
+//             setUnavailability(unavail);
+//         } catch (error) {
+//             console.error('Failed to load availability data:', error);
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
+
+//     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+//         setActiveTab(newValue);
+//     };
+
+//     const handleAddSlot = async () => {
+//         try {
+//             const slotData = {
+//                 doctorId: user?.id || '1',
+//                 ...newSlot,
+//             };
+
+//             if (editingSlot) {
+//                 await availabilityService.updateAvailabilitySlot(editingSlot.id, slotData);
+//             } else {
+//                 await availabilityService.createAvailabilitySlot(slotData);
+//             }
+
+//             await loadData();
+//             resetForm();
+//             setOpenDialog(false);
+//             setEditingSlot(null);
+//         } catch (error) {
+//             console.error('Failed to save slot:', error);
+//         }
+//     };
+
+//     const handleAddUnavailability = async () => {
+//         try {
+//             const unavailabilityData = {
+//                 doctorId: user?.id || '1',
+//                 ...newUnavailability,
+//             };
+
+//             if (editingUnavailability) {
+//                 // Update existing
+//                 // Note: We don't have update in service, so delete and recreate
+//                 await availabilityService.deleteUnavailability(editingUnavailability.id);
+//                 await availabilityService.createUnavailability(unavailabilityData);
+//             } else {
+//                 await availabilityService.createUnavailability(unavailabilityData);
+//             }
+
+//             await loadData();
+//             resetUnavailabilityForm();
+//             setOpenUnavailabilityDialog(false);
+//             setEditingUnavailability(null);
+//         } catch (error) {
+//             console.error('Failed to save unavailability:', error);
+//         }
+//     };
+
+//     const handleEditSlot = (slot: AvailabilitySlot) => {
+//         setEditingSlot(slot);
+//         setNewSlot({
+//             dayOfWeek: slot.dayOfWeek,
+//             startTime: slot.startTime,
+//             endTime: slot.endTime,
+//             isRecurring: slot.isRecurring,
+//             slotDuration: slot.slotDuration || 30,
+//             maxAppointmentsPerSlot: slot.maxAppointmentsPerSlot || 1,
+//         });
+//         setOpenDialog(true);
+//     };
+
+//     const handleEditUnavailability = (item: Unavailability) => {
+//         setEditingUnavailability(item);
+//         setNewUnavailability({
+//             title: item.title,
+//             startDate: new Date(item.startDate),
+//             endDate: new Date(item.endDate),
+//             reason: item.reason,
+//             isAllDay: item.isAllDay,
+//         });
+//         setOpenUnavailabilityDialog(true);
+//     };
+
+//     const handleDeleteSlot = async (id: string) => {
+//         if (window.confirm('Are you sure you want to delete this availability slot?')) {
+//             try {
+//                 await availabilityService.deleteAvailabilitySlot(id);
+//                 await loadData();
+//             } catch (error) {
+//                 console.error('Failed to delete slot:', error);
+//             }
+//         }
+//     };
+
+//     const handleDeleteUnavailability = async (id: string) => {
+//         if (window.confirm('Are you sure you want to delete this time off?')) {
+//             try {
+//                 await availabilityService.deleteUnavailability(id);
+//                 await loadData();
+//             } catch (error) {
+//                 console.error('Failed to delete unavailability:', error);
+//             }
+//         }
+//     };
+
+//     const resetForm = () => {
+//         setNewSlot({
+//             dayOfWeek: 1,
+//             startTime: '09:00',
+//             endTime: '17:00',
+//             isRecurring: true,
+//             slotDuration: 30,
+//             maxAppointmentsPerSlot: 1,
+//         });
+//         setEditingSlot(null);
+//     };
+
+//     const resetUnavailabilityForm = () => {
+//         setNewUnavailability({
+//             title: '',
+//             startDate: new Date(),
+//             endDate: new Date(),
+//             reason: '',
+//             isAllDay: true,
+//         });
+//         setEditingUnavailability(null);
+//     };
+
+//     const getDayLabel = (dayOfWeek: number) => {
+//         return DAYS_OF_WEEK.find(day => day.value === dayOfWeek)?.label || '';
+//     };
+
+//     const formatTimeDisplay = (time: string) => {
+//         const [hours, minutes] = time.split(':').map(Number);
+//         const ampm = hours >= 12 ? 'PM' : 'AM';
+//         const displayHours = hours % 12 || 12;
+//         return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+//     };
+
+//     const groupSlotsByDay = () => {
+//         const grouped: Record<number, AvailabilitySlot[]> = {};
+
+//         // Initialize empty arrays for each day
+//         DAYS_OF_WEEK.forEach(day => {
+//             grouped[day.value] = [];
+//         });
+
+//         // Group slots by day
+//         availabilitySlots.forEach(slot => {
+//             if (grouped[slot.dayOfWeek]) {
+//                 grouped[slot.dayOfWeek].push(slot);
+//             } else {
+//                 grouped[slot.dayOfWeek] = [slot];
+//             }
+//         });
+
+//         return grouped;
+//     };
+
+//     if (loading) {
+//         return (
+//             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+//                 <Typography>Loading availability settings...</Typography>
+//             </Box>
+//         );
+//     }
+
+//     const groupedSlots = groupSlotsByDay();
+
+//     return (
+//         <LocalizationProvider dateAdapter={AdapterDateFns}>
+//             <Box>
+//                 {/* Header */}
+//                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+//                     <Box>
+//                         <Typography variant="h4" component="h1" gutterBottom>
+//                             Availability Settings
+//                         </Typography>
+//                         <Typography variant="body1" color="text.secondary">
+//                             Set your working hours and manage time off
+//                         </Typography>
+//                     </Box>
+//                 </Box>
+
+//                 {/* Tabs */}
+//                 <Paper sx={{ mb: 3 }}>
+//                     <Tabs value={activeTab} onChange={handleTabChange} centered>
+//                         <Tab icon={<ScheduleIcon />} label="Weekly Schedule" />
+//                         <Tab icon={<EventBusyIcon />} label="Time Off" />
+//                     </Tabs>
+//                 </Paper>
+
+//                 {/* Weekly Schedule Tab */}
+//                 <TabPanel value={activeTab} index={0}>
+//                     <Grid container spacing={3}>
+//                         {/* Left Column: Schedule Setup */}
+//                         <Grid size={{xs: 12, md: 5}}>
+//                             <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+//                                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+//                                     <ScheduleIcon color="primary" />
+//                                     Add Availability Slot
+//                                 </Typography>
+
+//                                 <Box sx={{ mt: 3 }}>
+//                                     <TextField
+//                                         select
+//                                         fullWidth
+//                                         label="Day of Week"
+//                                         value={newSlot.dayOfWeek}
+//                                         onChange={(e) => setNewSlot({ ...newSlot, dayOfWeek: parseInt(e.target.value) })}
+//                                         sx={{ mb: 2 }}
+//                                     >
+//                                         {DAYS_OF_WEEK.map((day) => (
+//                                             <MenuItem key={day.value} value={day.value}>
+//                                                 {day.label}
+//                                             </MenuItem>
+//                                         ))}
+//                                     </TextField>
+
+//                                     <Grid container spacing={2} sx={{ mb: 2 }}>
+//                                         <Grid size={{ xs: 6 }}>
+//                                             <TextField
+//                                                 type="time"
+//                                                 label="Start Time"
+//                                                 value={newSlot.startTime}
+//                                                 onChange={(e) => setNewSlot({ ...newSlot, startTime: e.target.value })}
+//                                                 fullWidth
+//                                                 slotProps={{
+//                                                     inputLabel: { shrink: true }
+//                                                 }}
+//                                             />
+//                                         </Grid>
+//                                         <Grid size={{ xs: 6 }}>
+//                                             <TextField
+//                                                 type="time"
+//                                                 label="End Time"
+//                                                 value={newSlot.endTime}
+//                                                 onChange={(e) => setNewSlot({ ...newSlot, endTime: e.target.value })}
+//                                                 fullWidth
+//                                                 slotProps={{
+//                                                     inputLabel: { shrink: true }
+//                                                 }}
+//                                             />
+//                                         </Grid>
+//                                     </Grid>
+
+//                                     <Grid container spacing={2} sx={{ mb: 2 }}>
+//                                         <Grid size={{ xs: 6 }}>
+//                                             <TextField
+//                                                 type="number"
+//                                                 label="Slot Duration (min)"
+//                                                 value={newSlot.slotDuration}
+//                                                 onChange={(e) => setNewSlot({ ...newSlot, slotDuration: parseInt(e.target.value) })}
+//                                                 fullWidth
+//                                                 InputProps={{ inputProps: { min: 15, step: 15 } }}
+//                                             />
+//                                         </Grid>
+//                                         <Grid size={{ xs: 6 }}>
+//                                             <TextField
+//                                                 type="number"
+//                                                 label="Max Appointments"
+//                                                 value={newSlot.maxAppointmentsPerSlot}
+//                                                 onChange={(e) => setNewSlot({ ...newSlot, maxAppointmentsPerSlot: parseInt(e.target.value) })}
+//                                                 fullWidth
+//                                                 InputProps={{ inputProps: { min: 1 } }}
+//                                             />
+//                                         </Grid>
+//                                     </Grid>
+
+//                                     <FormControlLabel
+//                                         control={
+//                                             <Switch
+//                                                 checked={newSlot.isRecurring}
+//                                                 onChange={(e) => setNewSlot({ ...newSlot, isRecurring: e.target.checked })}
+//                                             />
+//                                         }
+//                                         label="Recurring Weekly"
+//                                     />
+
+//                                     <Button
+//                                         fullWidth
+//                                         variant="contained"
+//                                         onClick={handleAddSlot}
+//                                         startIcon={editingSlot ? <EditIcon /> : <AddIcon />}
+//                                         sx={{ mt: 2 }}
+//                                     >
+//                                         {editingSlot ? 'Update Slot' : 'Add Slot'}
+//                                     </Button>
+//                                 </Box>
+//                             </Paper>
+//                         </Grid>
+
+//                         {/* Right Column: Schedule Preview */}
+//                         <Grid size={{ xs: 12, md: 7 }}>
+//                             <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+//                                 <Typography variant="h6" gutterBottom>
+//                                     Weekly Schedule Preview
+//                                 </Typography>
+
+//                                 <Box sx={{ mt: 2, maxHeight: 500, overflow: 'auto' }}>
+//                                     {DAYS_OF_WEEK.map((day) => (
+//                                         <Box key={day.value} sx={{ mb: 3 }}>
+//                                             <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1, color: 'primary.main' }}>
+//                                                 {day.label}
+//                                             </Typography>
+
+//                                             {groupedSlots[day.value]?.length === 0 ? (
+//                                                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', ml: 2 }}>
+//                                                     No availability set
+//                                                 </Typography>
+//                                             ) : (
+//                                                 <Grid container spacing={1}>
+//                                                     {groupedSlots[day.value]?.map((slot) => (
+//                                                         <Grid size={{xs:12}}  key={slot.id}>
+//                                                             <Card variant="outlined">
+//                                                                 <CardContent sx={{ py: 1, '&:last-child': { pb: 1 } }}>
+//                                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+//                                                                         <Box>
+//                                                                             <Typography variant="body2" fontWeight="medium">
+//                                                                                 {formatTimeDisplay(slot.startTime)} - {formatTimeDisplay(slot.endTime)}
+//                                                                             </Typography>
+//                                                                             <Typography variant="caption" color="text.secondary">
+//                                                                                 Duration: {slot.slotDuration}min • Max: {slot.maxAppointmentsPerSlot} appointment{slot.maxAppointmentsPerSlot !== 1 ? 's' : ''}
+//                                                                             </Typography>
+//                                                                         </Box>
+//                                                                         <Box>
+//                                                                             <IconButton
+//                                                                                 size="small"
+//                                                                                 onClick={() => handleEditSlot(slot)}
+//                                                                                 color="primary"
+//                                                                             >
+//                                                                                 <EditIcon fontSize="small" />
+//                                                                             </IconButton>
+//                                                                             <IconButton
+//                                                                                 size="small"
+//                                                                                 onClick={() => handleDeleteSlot(slot.id)}
+//                                                                                 color="error"
+//                                                                             >
+//                                                                                 <DeleteIcon fontSize="small" />
+//                                                                             </IconButton>
+//                                                                         </Box>
+//                                                                     </Box>
+//                                                                 </CardContent>
+//                                                             </Card>
+//                                                         </Grid>
+//                                                     ))}
+//                                                 </Grid>
+//                                             )}
+//                                         </Box>
+//                                     ))}
+//                                 </Box>
+//                             </Paper>
+//                         </Grid>
+//                     </Grid>
+//                 </TabPanel>
+
+//                 {/* Time Off Tab */}
+//                 <TabPanel value={activeTab} index={1}>
+//                     <Grid container spacing={3}>
+//                         <Grid size={{  xs: 12, md: 5 }}>
+//                             <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+//                                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+//                                     <EventBusyIcon color="primary" />
+//                                     Add Time Off
+//                                 </Typography>
+
+//                                 <Box sx={{ mt: 3 }}>
+//                                     <TextField
+//                                         fullWidth
+//                                         label="Title/Reason"
+//                                         value={newUnavailability.title}
+//                                         onChange={(e) => setNewUnavailability({ ...newUnavailability, title: e.target.value })}
+//                                         sx={{ mb: 2 }}
+//                                         placeholder="e.g., Vacation, Conference, Sick Leave"
+//                                     />
+
+//                                     <Grid container spacing={2} sx={{ mb: 2 }}>
+//                                         <Grid size={{ xs: 6 }}>
+//                                             <DatePicker
+//                                                 label="Start Date"
+//                                                 value={newUnavailability.startDate}
+//                                                 onChange={(date) => setNewUnavailability({ ...newUnavailability, startDate: date || new Date() })}
+//                                                 slotProps={{ textField: { fullWidth: true } }}
+//                                             />
+//                                         </Grid>
+//                                         <Grid size={{ xs: 6 }}>
+//                                             <DatePicker
+//                                                 label="End Date"
+//                                                 value={newUnavailability.endDate}
+//                                                 onChange={(date) => setNewUnavailability({ ...newUnavailability, endDate: date || new Date() })}
+//                                                 slotProps={{ textField: { fullWidth: true } }}
+//                                             />
+//                                         </Grid>
+//                                     </Grid>
+
+//                                     <TextField
+//                                         fullWidth
+//                                         multiline
+//                                         rows={3}
+//                                         label="Additional Notes"
+//                                         value={newUnavailability.reason}
+//                                         onChange={(e) => setNewUnavailability({ ...newUnavailability, reason: e.target.value })}
+//                                         sx={{ mb: 2 }}
+//                                     />
+
+//                                     <FormControlLabel
+//                                         control={
+//                                             <Switch
+//                                                 checked={newUnavailability.isAllDay}
+//                                                 onChange={(e) => setNewUnavailability({ ...newUnavailability, isAllDay: e.target.checked })}
+//                                             />
+//                                         }
+//                                         label="All Day Event"
+//                                     />
+
+//                                     <Button
+//                                         fullWidth
+//                                         variant="contained"
+//                                         onClick={handleAddUnavailability}
+//                                         startIcon={editingUnavailability ? <EditIcon /> : <AddIcon />}
+//                                         sx={{ mt: 2 }}
+//                                     >
+//                                         {editingUnavailability ? 'Update Time Off' : 'Add Time Off'}
+//                                     </Button>
+//                                 </Box>
+//                             </Paper>
+//                         </Grid>
+
+//                         <Grid size={{ xs: 12, md: 7 }}>
+//                             <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+//                                 <Typography variant="h6" gutterBottom>
+//                                     Upcoming Time Off
+//                                 </Typography>
+
+//                                 {unavailability.length === 0 ? (
+//                                     <Alert severity="info" sx={{ mt: 2 }}>
+//                                         No time off scheduled. Add your vacations, conferences, or personal days here.
+//                                     </Alert>
+//                                 ) : (
+//                                     <Box sx={{ mt: 2 }}>
+//                                         {unavailability.map((item) => (
+//                                             <Card key={item.id} variant="outlined" sx={{ mb: 2 }}>
+//                                                 <CardContent>
+//                                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+//                                                         <Box>
+//                                                             <Typography variant="subtitle1" fontWeight="medium">
+//                                                                 {item.title}
+//                                                             </Typography>
+//                                                             <Typography variant="body2" color="text.secondary">
+//                                                                 {new Date(item.startDate).toLocaleDateString()} - {new Date(item.endDate).toLocaleDateString()}
+//                                                                 {item.isAllDay ? ' (All Day)' : ''}
+//                                                             </Typography>
+//                                                             {item.reason && (
+//                                                                 <Typography variant="body2" sx={{ mt: 1 }}>
+//                                                                     {item.reason}
+//                                                                 </Typography>
+//                                                             )}
+//                                                         </Box>
+//                                                         <Box>
+//                                                             <IconButton
+//                                                                 size="small"
+//                                                                 onClick={() => handleEditUnavailability(item)}
+//                                                                 color="primary"
+//                                                             >
+//                                                                 <EditIcon fontSize="small" />
+//                                                             </IconButton>
+//                                                             <IconButton
+//                                                                 size="small"
+//                                                                 onClick={() => handleDeleteUnavailability(item.id)}
+//                                                                 color="error"
+//                                                             >
+//                                                                 <DeleteIcon fontSize="small" />
+//                                                             </IconButton>
+//                                                         </Box>
+//                                                     </Box>
+//                                                 </CardContent>
+//                                             </Card>
+//                                         ))}
+//                                     </Box>
+//                                 )}
+//                             </Paper>
+//                         </Grid>
+//                     </Grid>
+//                 </TabPanel>
+
+//                 {/* Info Alert */}
+//                 <Alert severity="info" sx={{ mt: 4 }}>
+//                     <Typography variant="body2">
+//                         <strong>Important:</strong> Patients can only book appointments during your available hours.
+//                         Any appointments that overlap with your time off will be automatically blocked.
+//                     </Typography>
+//                 </Alert>
+//             </Box>
+//         </LocalizationProvider>
+//     );
+// };
+
+// export default AvailabilitySettings;
+
+// 2nd Iteration
+
+// import {
+//     AccessTime as AccessTimeIcon,
+//     Add as AddIcon,
+//     Delete as DeleteIcon,
+//     EventBusy as EventBusyIcon,
+//     Schedule as ScheduleIcon
+// } from '@mui/icons-material';
+// import {
+//     Alert,
+//     Box,
+//     Button,
+//     Card,
+//     CardContent,
+//     Chip,
+//     Divider,
+//     FormControlLabel,
+//     Grid,
+//     IconButton,
+//     MenuItem,
+//     Paper,
+//     Stack,
+//     Switch,
+//     Tab,
+//     Tabs,
+//     TextField,
+//     Typography,
+// } from '@mui/material';
+// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+// import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+// import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+// import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+// import React, { useEffect, useState } from 'react';
+// import { availabilityService } from '../services/availabilityService';
+// import { useAppSelector } from '../store/store';
+// import { AvailabilitySlot, Unavailability } from '../types';
+
+// const DAYS_OF_WEEK = [
+//     { value: 0, label: 'Sunday', short: 'Sun' },
+//     { value: 1, label: 'Monday', short: 'Mon' },
+//     { value: 2, label: 'Tuesday', short: 'Tue' },
+//     { value: 3, label: 'Wednesday', short: 'Wed' },
+//     { value: 4, label: 'Thursday', short: 'Thu' },
+//     { value: 5, label: 'Friday', short: 'Fri' },
+//     { value: 6, label: 'Saturday', short: 'Sat' },
+// ];
+
+// interface TabPanelProps {
+//     children?: React.ReactNode;
+//     index: number;
+//     value: number;
+// }
+
+// const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
+//     return (
+//         <div hidden={value !== index}>
+//             {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+//         </div>
+//     );
+// };
+
+// const AvailabilitySettings: React.FC = () => {
+//     const { user } = useAppSelector((state) => state.auth);
+//     const [activeTab, setActiveTab] = useState(0);
+//     const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+//     const [unavailability, setUnavailability] = useState<Unavailability[]>([]);
+//     const [loading, setLoading] = useState(true);
+
+//     // Form states with proper time handling
+//     const [newSlot, setNewSlot] = useState({
+//         dayOfWeek: 1,
+//         startTime: new Date(new Date().setHours(9, 0, 0, 0)), // 9:00 AM
+//         endTime: new Date(new Date().setHours(17, 0, 0, 0)), // 5:00 PM
+//         isRecurring: true,
+//         slotDuration: 30,
+//     });
+
+//     const [newUnavailability, setNewUnavailability] = useState({
+//         title: '',
+//         startDate: new Date(),
+//         endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
+//         reason: '',
+//         isAllDay: true,
+//     });
+
+//     useEffect(() => {
+//         loadData();
+//     }, []);
+
+//     const loadData = async () => {
+//         setLoading(true);
+//         try {
+//             const [slots, unavail] = await Promise.all([
+//                 availabilityService.getAvailabilitySlots(user?.id || '1'),
+//                 availabilityService.getUnavailability(user?.id || '1'),
+//             ]);
+//             setAvailabilitySlots(slots);
+//             setUnavailability(unavail);
+//         } catch (error) {
+//             console.error('Failed to load availability data:', error);
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
+
+//     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+//         setActiveTab(newValue);
+//     };
+
+//     const handleAddSlot = async () => {
+//         try {
+//             // Convert Date objects to time strings
+//             const slotData = {
+//                 doctorId: user?.id || '1',
+//                 dayOfWeek: newSlot.dayOfWeek,
+//                 startTime: formatTime(newSlot.startTime),
+//                 endTime: formatTime(newSlot.endTime),
+//                 isRecurring: newSlot.isRecurring,
+//                 slotDuration: newSlot.slotDuration,
+//                 maxAppointmentsPerSlot: 1, // Always 1 for now
+//             };
+
+//             await availabilityService.createAvailabilitySlot(slotData);
+//             await loadData();
+//             resetSlotForm();
+//         } catch (error) {
+//             console.error('Failed to save slot:', error);
+//         }
+//     };
+
+//     const handleAddUnavailability = async () => {
+//         try {
+//             const unavailabilityData = {
+//                 doctorId: user?.id || '1',
+//                 ...newUnavailability,
+//             };
+
+//             await availabilityService.createUnavailability(unavailabilityData);
+//             await loadData();
+//             resetUnavailabilityForm();
+//         } catch (error) {
+//             console.error('Failed to save unavailability:', error);
+//         }
+//     };
+
+//     const handleDeleteSlot = async (id: string) => {
+//         if (window.confirm('Are you sure you want to delete this availability slot?')) {
+//             try {
+//                 await availabilityService.deleteAvailabilitySlot(id);
+//                 await loadData();
+//             } catch (error) {
+//                 console.error('Failed to delete slot:', error);
+//             }
+//         }
+//     };
+
+//     const handleDeleteUnavailability = async (id: string) => {
+//         if (window.confirm('Are you sure you want to delete this time off?')) {
+//             try {
+//                 await availabilityService.deleteUnavailability(id);
+//                 await loadData();
+//             } catch (error) {
+//                 console.error('Failed to delete unavailability:', error);
+//             }
+//         }
+//     };
+
+//     const resetSlotForm = () => {
+//         setNewSlot({
+//             dayOfWeek: 1,
+//             startTime: new Date(new Date().setHours(9, 0, 0, 0)),
+//             endTime: new Date(new Date().setHours(17, 0, 0, 0)),
+//             isRecurring: true,
+//             slotDuration: 30,
+//         });
+//     };
+
+//     const resetUnavailabilityForm = () => {
+//         setNewUnavailability({
+//             title: '',
+//             startDate: new Date(),
+//             endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
+//             reason: '',
+//             isAllDay: true,
+//         });
+//     };
+
+//     // Helper function to format Date to time string
+//     const formatTime = (date: Date): string => {
+//         const hours = date.getHours().toString().padStart(2, '0');
+//         const minutes = date.getMinutes().toString().padStart(2, '0');
+//         return `${hours}:${minutes}`;
+//     };
+
+//     // Helper to format time string for display
+//     const formatTimeDisplay = (time: string): string => {
+//         const [hours, minutes] = time.split(':').map(Number);
+//         const ampm = hours >= 12 ? 'PM' : 'AM';
+//         const displayHours = hours % 12 || 12;
+//         return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+//     };
+
+//     const groupSlotsByDay = () => {
+//         const grouped: Record<number, AvailabilitySlot[]> = {};
+
+//         // Initialize empty arrays for each day
+//         DAYS_OF_WEEK.forEach(day => {
+//             grouped[day.value] = [];
+//         });
+
+//         // Group slots by day
+//         availabilitySlots.forEach(slot => {
+//             if (grouped[slot.dayOfWeek]) {
+//                 grouped[slot.dayOfWeek].push(slot);
+//             }
+//         });
+
+//         return grouped;
+//     };
+
+//     const getDayName = (dayOfWeek: number): string => {
+//         return DAYS_OF_WEEK.find(day => day.value === dayOfWeek)?.label || '';
+//     };
+
+//     if (loading) {
+//         return (
+//             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+//                 <Typography>Loading availability settings...</Typography>
+//             </Box>
+//         );
+//     }
+
+//     const groupedSlots = groupSlotsByDay();
+
+//     return (
+//         <LocalizationProvider dateAdapter={AdapterDateFns}>
+//             <Box>
+//                 {/* Header */}
+//                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+//                     <Box>
+//                         <Typography variant="h4" component="h1" gutterBottom>
+//                             Availability Settings
+//                         </Typography>
+//                         <Typography variant="body1" color="text.secondary">
+//                             Set your working hours and manage time off
+//                         </Typography>
+//                     </Box>
+//                     <Chip
+//                         icon={<AccessTimeIcon />}
+//                         label={`${availabilitySlots.length} slots configured`}
+//                         color="primary"
+//                         variant="outlined"
+//                     />
+//                 </Box>
+
+//                 {/* Tabs */}
+//                 <Paper sx={{ mb: 3 }}>
+//                     <Tabs value={activeTab} onChange={handleTabChange} centered>
+//                         <Tab icon={<ScheduleIcon />} label="Weekly Schedule" />
+//                         <Tab icon={<EventBusyIcon />} label="Time Off" />
+//                     </Tabs>
+//                 </Paper>
+
+//                 {/* Weekly Schedule Tab */}
+//                 <TabPanel value={activeTab} index={0}>
+//                     <Grid container spacing={3}>
+//                         {/* Left Column: Schedule Setup - Optimized */}
+//                         <Grid size={{ xs: 12, lg: 4 }}>
+//                             <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+//                                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+//                                     <ScheduleIcon color="primary" />
+//                                     Add Availability Slot
+//                                 </Typography>
+
+//                                 <Box sx={{ mt: 3 }}>
+//                                     <TextField
+//                                         select
+//                                         fullWidth
+//                                         label="Day of Week"
+//                                         value={newSlot.dayOfWeek}
+//                                         onChange={(e) => setNewSlot({ ...newSlot, dayOfWeek: parseInt(e.target.value) })}
+//                                         sx={{ mb: 3 }}
+//                                     >
+//                                         {DAYS_OF_WEEK.map((day) => (
+//                                             <MenuItem key={day.value} value={day.value}>
+//                                                 {day.label}
+//                                             </MenuItem>
+//                                         ))}
+//                                     </TextField>
+
+//                                     <Stack spacing={3} sx={{ mb: 3 }}>
+//                                         <TimePicker
+//                                             label="Start Time"
+//                                             value={newSlot.startTime}
+//                                             onChange={(newValue) => newValue && setNewSlot({ ...newSlot, startTime: newValue })}
+//                                             ampm={false}
+//                                             slotProps={{
+//                                                 textField: {
+//                                                     fullWidth: true,
+//                                                     InputProps: {
+//                                                         startAdornment: <AccessTimeIcon sx={{ mr: 1, color: 'action.active' }} />,
+//                                                     },
+//                                                 },
+//                                             }}
+//                                         />
+
+//                                         <TimePicker
+//                                             label="End Time"
+//                                             value={newSlot.endTime}
+//                                             onChange={(newValue) => newValue && setNewSlot({ ...newSlot, endTime: newValue })}
+//                                             ampm={false}
+//                                             slotProps={{
+//                                                 textField: {
+//                                                     fullWidth: true,
+//                                                     InputProps: {
+//                                                         startAdornment: <AccessTimeIcon sx={{ mr: 1, color: 'action.active' }} />,
+//                                                     },
+//                                                 },
+//                                             }}
+//                                         />
+//                                     </Stack>
+
+//                                     <TextField
+//                                         type="number"
+//                                         label="Slot Duration (minutes)"
+//                                         value={newSlot.slotDuration}
+//                                         onChange={(e) => setNewSlot({ ...newSlot, slotDuration: parseInt(e.target.value) })}
+//                                         fullWidth
+//                                         sx={{ mb: 3 }}
+//                                         InputProps={{
+//                                             inputProps: { min: 15, step: 15 },
+//                                             startAdornment: <ScheduleIcon sx={{ mr: 1, color: 'action.active' }} />,
+//                                         }}
+//                                         helperText="Typically 30 or 60 minutes for consultations"
+//                                     />
+
+//                                     <FormControlLabel
+//                                         control={
+//                                             <Switch
+//                                                 checked={newSlot.isRecurring}
+//                                                 onChange={(e) => setNewSlot({ ...newSlot, isRecurring: e.target.checked })}
+//                                             />
+//                                         }
+//                                         label="Recurring Weekly"
+//                                         sx={{ mb: 3 }}
+//                                     />
+
+//                                     <Button
+//                                         fullWidth
+//                                         variant="contained"
+//                                         onClick={handleAddSlot}
+//                                         startIcon={<AddIcon />}
+//                                         size="large"
+//                                     >
+//                                         Add Availability Slot
+//                                     </Button>
+//                                 </Box>
+//                             </Paper>
+//                         </Grid>
+
+//                         {/* Right Column: Schedule Preview - More Space */}
+//                         <Grid size={{ xs: 12, lg: 8 }}>
+//                             <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+//                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+//                                     <Typography variant="h6">
+//                                         Weekly Schedule Preview
+//                                     </Typography>
+//                                     <Chip
+//                                         label={`${availabilitySlots.length} slots`}
+//                                         size="small"
+//                                         color="primary"
+//                                         variant="outlined"
+//                                     />
+//                                 </Box>
+
+//                                 <Divider sx={{ mb: 3 }} />
+
+//                                 <Box sx={{ maxHeight: 500, overflow: 'auto' }}>
+//                                     <Grid container spacing={2}>
+//                                         {DAYS_OF_WEEK.map((day) => (
+//                                             <Grid size={{ xs: 12 }} key={day.value}>
+//                                                 <Card variant="outlined">
+//                                                     <CardContent>
+//                                                         <Typography
+//                                                             variant="subtitle1"
+//                                                             fontWeight="bold"
+//                                                             sx={{
+//                                                                 mb: 2,
+//                                                                 color: groupedSlots[day.value]?.length > 0 ? 'primary.main' : 'text.secondary',
+//                                                                 display: 'flex',
+//                                                                 alignItems: 'center',
+//                                                                 gap: 1
+//                                                             }}
+//                                                         >
+//                                                             <Box
+//                                                                 sx={{
+//                                                                     width: 8,
+//                                                                     height: 8,
+//                                                                     borderRadius: '50%',
+//                                                                     bgcolor: groupedSlots[day.value]?.length > 0 ? 'primary.main' : 'grey.400'
+//                                                                 }}
+//                                                             />
+//                                                             {day.label}
+//                                                             <Chip
+//                                                                 label={`${groupedSlots[day.value]?.length || 0} slots`}
+//                                                                 size="small"
+//                                                                 variant="outlined"
+//                                                                 sx={{ ml: 'auto' }}
+//                                                             />
+//                                                         </Typography>
+
+//                                                         {groupedSlots[day.value]?.length === 0 ? (
+//                                                             <Typography
+//                                                                 variant="body2"
+//                                                                 color="text.secondary"
+//                                                                 sx={{
+//                                                                     fontStyle: 'italic',
+//                                                                     textAlign: 'center',
+//                                                                     py: 2
+//                                                                 }}
+//                                                             >
+//                                                                 No availability set for this day
+//                                                             </Typography>
+//                                                         ) : (
+//                                                             <Grid container spacing={1}>
+//                                                                 {groupedSlots[day.value]?.map((slot) => (
+//                                                                     <Grid size={{ xs: 12, sm: 6, md: 4 }} key={slot.id}>
+//                                                                         <Card
+//                                                                             variant="outlined"
+//                                                                             sx={{
+//                                                                                 bgcolor: 'grey.50',
+//                                                                                 borderColor: 'grey.200',
+//                                                                                 position: 'relative',
+//                                                                                 '&:hover': {
+//                                                                                     bgcolor: 'grey.100',
+//                                                                                 }
+//                                                                             }}
+//                                                                         >
+//                                                                             <CardContent sx={{ py: 1.5, px: 2 }}>
+//                                                                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+//                                                                                     <Box>
+//                                                                                         <Typography variant="body2" fontWeight="medium">
+//                                                                                             {formatTimeDisplay(slot.startTime)} - {formatTimeDisplay(slot.endTime)}
+//                                                                                         </Typography>
+//                                                                                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+//                                                                                             {slot.slotDuration} min slots
+//                                                                                         </Typography>
+//                                                                                     </Box>
+//                                                                                     <IconButton
+//                                                                                         size="small"
+//                                                                                         onClick={() => handleDeleteSlot(slot.id)}
+//                                                                                         color="error"
+//                                                                                         sx={{ ml: 1 }}
+//                                                                                     >
+//                                                                                         <DeleteIcon fontSize="small" />
+//                                                                                     </IconButton>
+//                                                                                 </Box>
+//                                                                             </CardContent>
+//                                                                         </Card>
+//                                                                     </Grid>
+//                                                                 ))}
+//                                                             </Grid>
+//                                                         )}
+//                                                     </CardContent>
+//                                                 </Card>
+//                                             </Grid>
+//                                         ))}
+//                                     </Grid>
+//                                 </Box>
+//                             </Paper>
+//                         </Grid>
+//                     </Grid>
+//                 </TabPanel>
+
+//                 {/* Time Off Tab */}
+//                 <TabPanel value={activeTab} index={1}>
+//                     <Grid container spacing={3}>
+//                         <Grid size={{ xs: 12, lg: 4 }}>
+//                             <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+//                                 <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+//                                     <EventBusyIcon color="primary" />
+//                                     Add Time Off
+//                                 </Typography>
+
+//                                 <Box sx={{ mt: 3 }}>
+//                                     <TextField
+//                                         fullWidth
+//                                         label="Title/Reason"
+//                                         value={newUnavailability.title}
+//                                         onChange={(e) => setNewUnavailability({ ...newUnavailability, title: e.target.value })}
+//                                         sx={{ mb: 3 }}
+//                                         placeholder="e.g., Vacation, Conference, Sick Leave"
+//                                     />
+
+//                                     <Stack spacing={3} sx={{ mb: 3 }}>
+//                                         <DatePicker
+//                                             label="Start Date"
+//                                             value={newUnavailability.startDate}
+//                                             onChange={(date) => setNewUnavailability({ ...newUnavailability, startDate: date || new Date() })}
+//                                             slotProps={{ textField: { fullWidth: true } }}
+//                                         />
+
+//                                         <DatePicker
+//                                             label="End Date"
+//                                             value={newUnavailability.endDate}
+//                                             onChange={(date) => setNewUnavailability({ ...newUnavailability, endDate: date || new Date() })}
+//                                             slotProps={{ textField: { fullWidth: true } }}
+//                                         />
+//                                     </Stack>
+
+//                                     <TextField
+//                                         fullWidth
+//                                         multiline
+//                                         rows={2}
+//                                         label="Additional Notes"
+//                                         value={newUnavailability.reason}
+//                                         onChange={(e) => setNewUnavailability({ ...newUnavailability, reason: e.target.value })}
+//                                         sx={{ mb: 3 }}
+//                                     />
+
+//                                     <FormControlLabel
+//                                         control={
+//                                             <Switch
+//                                                 checked={newUnavailability.isAllDay}
+//                                                 onChange={(e) => setNewUnavailability({ ...newUnavailability, isAllDay: e.target.checked })}
+//                                             />
+//                                         }
+//                                         label="All Day Event"
+//                                         sx={{ mb: 3 }}
+//                                     />
+
+//                                     <Button
+//                                         fullWidth
+//                                         variant="contained"
+//                                         onClick={handleAddUnavailability}
+//                                         startIcon={<AddIcon />}
+//                                         size="large"
+//                                     >
+//                                         Add Time Off
+//                                     </Button>
+//                                 </Box>
+//                             </Paper>
+//                         </Grid>
+
+//                         <Grid size={{ xs: 12, lg: 8 }}>
+//                             <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+//                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+//                                     <Typography variant="h6">
+//                                         Scheduled Time Off
+//                                     </Typography>
+//                                     <Chip
+//                                         label={`${unavailability.length} entries`}
+//                                         size="small"
+//                                         color="primary"
+//                                         variant="outlined"
+//                                     />
+//                                 </Box>
+
+//                                 <Divider sx={{ mb: 3 }} />
+
+//                                 {unavailability.length === 0 ? (
+//                                     <Alert severity="info" sx={{ mt: 2 }}>
+//                                         No time off scheduled. Add your vacations, conferences, or personal days here.
+//                                     </Alert>
+//                                 ) : (
+//                                     <Grid container spacing={2}>
+//                                         {unavailability.map((item) => (
+//                                             <Grid size={{ xs: 12 }} key={item.id}>
+//                                                 <Card variant="outlined">
+//                                                     <CardContent>
+//                                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+//                                                             <Box>
+//                                                                 <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+//                                                                     {item.title}
+//                                                                 </Typography>
+//                                                                 <Typography variant="body2" color="text.secondary" gutterBottom>
+//                                                                     <strong>When:</strong> {new Date(item.startDate).toLocaleDateString()} - {new Date(item.endDate).toLocaleDateString()}
+//                                                                     {item.isAllDay ? ' (All Day)' : ''}
+//                                                                 </Typography>
+//                                                                 {item.reason && (
+//                                                                     <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+//                                                                         <strong>Notes:</strong> {item.reason}
+//                                                                     </Typography>
+//                                                                 )}
+//                                                             </Box>
+//                                                             <IconButton
+//                                                                 size="small"
+//                                                                 onClick={() => handleDeleteUnavailability(item.id)}
+//                                                                 color="error"
+//                                                             >
+//                                                                 <DeleteIcon fontSize="small" />
+//                                                             </IconButton>
+//                                                         </Box>
+//                                                     </CardContent>
+//                                                 </Card>
+//                                             </Grid>
+//                                         ))}
+//                                     </Grid>
+//                                 )}
+//                             </Paper>
+//                         </Grid>
+//                     </Grid>
+//                 </TabPanel>
+
+//                 {/* Info Alert */}
+//                 <Alert severity="info" sx={{ mt: 4 }}>
+//                     <Typography variant="body2">
+//                         <strong>How it works:</strong> Patients can only book appointments during your available hours.
+//                         Any appointments that overlap with your time off will be automatically blocked.
+//                         You can set different schedules for each day of the week.
+//                     </Typography>
+//                 </Alert>
+//             </Box>
+//         </LocalizationProvider>
+//     );
+// };
+
+// export default AvailabilitySettings;
+
+// 3rd Iteration
+
+import {
+   AccessTime as AccessTimeIcon,
+   Add as AddIcon,
+   Delete as DeleteIcon,
+   Edit as EditIcon,
+   EventBusy as EventBusyIcon,
+   Schedule as ScheduleIcon,
+} from '@mui/icons-material';
+import {
+   Alert,
+   Box,
+   Button,
+   Card,
+   CardContent,
+   Chip,
+   Divider,
+   FormControlLabel,
+   Grid,
+   IconButton,
+   MenuItem,
+   Paper,
+   Stack,
+   Switch,
+   Tab,
+   Tabs,
+   TextField,
+   Typography,
+} from '@mui/material';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import React, { useEffect, useState } from 'react';
+import { availabilityService } from '../services/availabilityService';
+import { useAppSelector } from '../store/store';
+import { AvailabilitySlot, Unavailability } from '../types';
+
+const DAYS_OF_WEEK = [
+   { value: 0, label: 'Sunday', short: 'Sun' },
+   { value: 1, label: 'Monday', short: 'Mon' },
+   { value: 2, label: 'Tuesday', short: 'Tue' },
+   { value: 3, label: 'Wednesday', short: 'Wed' },
+   { value: 4, label: 'Thursday', short: 'Thu' },
+   { value: 5, label: 'Friday', short: 'Fri' },
+   { value: 6, label: 'Saturday', short: 'Sat' },
+];
+
+interface TabPanelProps {
+   children?: React.ReactNode;
+   index: number;
+   value: number;
+}
+
+const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
+   return (
+      <div hidden={value !== index}>
+         {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      </div>
+   );
+};
+
+const AvailabilitySettings: React.FC = () => {
+   const { user } = useAppSelector((state) => state.auth);
+   const [activeTab, setActiveTab] = useState(0);
+   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
+   const [unavailability, setUnavailability] = useState<Unavailability[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [isEditingSlot, setIsEditingSlot] = useState(false);
+   const [isEditingUnavailability, setIsEditingUnavailability] = useState(false);
+
+   // Form states with proper time handling
+   const [slotForm, setSlotForm] = useState({
+      id: '',
+      dayOfWeek: 1,
+      startTime: new Date(new Date().setHours(9, 0, 0, 0)),
+      endTime: new Date(new Date().setHours(17, 0, 0, 0)),
+      isRecurring: true,
+      slotDuration: 30,
+   });
+
+   const [unavailabilityForm, setUnavailabilityForm] = useState({
+      id: '',
+      title: '',
+      startDate: new Date(),
+      endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
+      reason: '',
+      isAllDay: true,
+   });
+
+   useEffect(() => {
+      loadData();
+   }, []);
+
+   const loadData = async () => {
+      setLoading(true);
+      try {
+         const [slots, unavail] = await Promise.all([
+            availabilityService.getAvailabilitySlots(user?.id || '1'),
+            availabilityService.getUnavailability(user?.id || '1'),
+         ]);
+         setAvailabilitySlots(slots);
+         setUnavailability(unavail);
+      } catch (error) {
+         console.error('Failed to load availability data:', error);
+      } finally {
+         setLoading(false);
+      }
+   };
+
+   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+      setActiveTab(newValue);
+   };
+
+   const handleSaveSlot = async () => {
+      try {
+         // Convert Date objects to time strings
+         const slotData = {
+            doctorId: user?.id || '1',
+            dayOfWeek: slotForm.dayOfWeek,
+            startTime: formatTime(slotForm.startTime),
+            endTime: formatTime(slotForm.endTime),
+            isRecurring: slotForm.isRecurring,
+            slotDuration: slotForm.slotDuration,
+            maxAppointmentsPerSlot: 1,
+         };
+
+         if (isEditingSlot) {
+            // Update existing slot
+            await availabilityService.updateAvailabilitySlot(slotForm.id, slotData);
+         } else {
+            // Create new slot
+            await availabilityService.createAvailabilitySlot(slotData);
+         }
+
+         await loadData();
+         resetSlotForm();
+      } catch (error) {
+         console.error('Failed to save slot:', error);
+      }
+   };
+
+   const handleSaveUnavailability = async () => {
+      try {
+         const unavailabilityData = {
+            doctorId: user?.id || '1',
+            title: unavailabilityForm.title,
+            startDate: unavailabilityForm.startDate,
+            endDate: unavailabilityForm.endDate,
+            reason: unavailabilityForm.reason,
+            isAllDay: unavailabilityForm.isAllDay,
+         };
+
+         if (isEditingUnavailability) {
+            // Update existing - for mock, delete and recreate
+            await availabilityService.deleteUnavailability(unavailabilityForm.id);
+            await availabilityService.createUnavailability(unavailabilityData);
+         } else {
+            // Create new
+            await availabilityService.createUnavailability(unavailabilityData);
+         }
+
+         await loadData();
+         resetUnavailabilityForm();
+      } catch (error) {
+         console.error('Failed to save unavailability:', error);
+      }
+   };
+
+   const handleEditSlot = (slot: AvailabilitySlot) => {
+      // Convert time strings back to Date objects for the form
+      const startTime = parseTimeString(slot.startTime);
+      const endTime = parseTimeString(slot.endTime);
+
+      setSlotForm({
+         id: slot.id,
+         dayOfWeek: slot.dayOfWeek,
+         startTime,
+         endTime,
+         isRecurring: slot.isRecurring,
+         slotDuration: slot.slotDuration || 30,
+      });
+      setIsEditingSlot(true);
+   };
+
+   const handleEditUnavailability = (item: Unavailability) => {
+      setUnavailabilityForm({
+         id: item.id,
+         title: item.title,
+         startDate: new Date(item.startDate),
+         endDate: new Date(item.endDate),
+         reason: item.reason,
+         isAllDay: item.isAllDay,
+      });
+      setIsEditingUnavailability(true);
+   };
+
+   const handleDeleteSlot = async (id: string) => {
+      if (window.confirm('Are you sure you want to delete this availability slot?')) {
+         try {
+            await availabilityService.deleteAvailabilitySlot(id);
+            await loadData();
+         } catch (error) {
+            console.error('Failed to delete slot:', error);
+         }
+      }
+   };
+
+   const handleDeleteUnavailability = async (id: string) => {
+      if (window.confirm('Are you sure you want to delete this time off?')) {
+         try {
+            await availabilityService.deleteUnavailability(id);
+            await loadData();
+         } catch (error) {
+            console.error('Failed to delete unavailability:', error);
+         }
+      }
+   };
+
+   const resetSlotForm = () => {
+      setSlotForm({
+         id: '',
+         dayOfWeek: 1,
+         startTime: new Date(new Date().setHours(9, 0, 0, 0)),
+         endTime: new Date(new Date().setHours(17, 0, 0, 0)),
+         isRecurring: true,
+         slotDuration: 30,
+      });
+      setIsEditingSlot(false);
+   };
+
+   const resetUnavailabilityForm = () => {
+      setUnavailabilityForm({
+         id: '',
+         title: '',
+         startDate: new Date(),
+         endDate: new Date(new Date().setDate(new Date().getDate() + 1)),
+         reason: '',
+         isAllDay: true,
+      });
+      setIsEditingUnavailability(false);
+   };
+
+   // Helper function to format Date to time string
+   const formatTime = (date: Date): string => {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+   };
+
+   // Helper to parse time string to Date
+   const parseTimeString = (timeString: string): Date => {
+      const [hours, minutes] = timeString.split(':').map(Number);
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+   };
+
+   // Helper to format time string for display
+   const formatTimeDisplay = (time: string): string => {
+      const [hours, minutes] = time.split(':').map(Number);
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+   };
+
+   const groupSlotsByDay = () => {
+      const grouped: Record<number, AvailabilitySlot[]> = {};
+
+      // Initialize empty arrays for each day
+      DAYS_OF_WEEK.forEach(day => {
+         grouped[day.value] = [];
+      });
+
+      // Group slots by day
+      availabilitySlots.forEach(slot => {
+         if (grouped[slot.dayOfWeek]) {
+            grouped[slot.dayOfWeek].push(slot);
+         }
+      });
+
+      return grouped;
+   };
+
+   if (loading) {
+      return (
+         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+            <Typography>Loading availability settings...</Typography>
+         </Box>
+      );
+   }
+
+   const groupedSlots = groupSlotsByDay();
+
+   return (
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+         <Box>
+            {/* Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+               <Box>
+                  <Typography variant="h4" component="h1" gutterBottom>
+                     Availability Settings
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                     Set your working hours and manage time off
+                  </Typography>
+               </Box>
+               <Chip
+                  icon={<AccessTimeIcon />}
+                  label={`${availabilitySlots.length} slots configured`}
+                  color="primary"
+                  variant="outlined"
+               />
+            </Box>
+
+            {/* Tabs */}
+            <Paper sx={{ mb: 3 }}>
+               <Tabs value={activeTab} onChange={handleTabChange} centered>
+                  <Tab icon={<ScheduleIcon />} label="Weekly Schedule" />
+                  <Tab icon={<EventBusyIcon />} label="Time Off" />
+               </Tabs>
+            </Paper>
+
+            {/* Weekly Schedule Tab */}
+            <TabPanel value={activeTab} index={0}>
+               <Grid container spacing={3}>
+                  {/* Left Column: Schedule Setup */}
+                  <Grid size={{ xs: 12, lg: 4 }}>
+                     <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                           <ScheduleIcon color="primary" />
+                           {isEditingSlot ? 'Edit Availability Slot' : 'Add Availability Slot'}
+                        </Typography>
+
+                        <Box sx={{ mt: 3 }}>
+                           <TextField
+                              select
+                              fullWidth
+                              label="Day of Week"
+                              value={slotForm.dayOfWeek}
+                              onChange={(e) => setSlotForm({ ...slotForm, dayOfWeek: parseInt(e.target.value) })}
+                              sx={{ mb: 3 }}
+                           >
+                              {DAYS_OF_WEEK.map((day) => (
+                                 <MenuItem key={day.value} value={day.value}>
+                                    {day.label}
+                                 </MenuItem>
+                              ))}
+                           </TextField>
+
+                           <Stack spacing={3} sx={{ mb: 3 }}>
+                              <TimePicker
+                                 label="Start Time"
+                                 value={slotForm.startTime}
+                                 onChange={(newValue) => newValue && setSlotForm({ ...slotForm, startTime: newValue })}
+                                 ampm={false}
+                                 slotProps={{
+                                    textField: {
+                                       fullWidth: true,
+                                       InputProps: {
+                                          startAdornment: <AccessTimeIcon sx={{ mr: 1, color: 'action.active' }} />,
+                                       },
+                                    },
+                                 }}
+                              />
+
+                              <TimePicker
+                                 label="End Time"
+                                 value={slotForm.endTime}
+                                 onChange={(newValue) => newValue && setSlotForm({ ...slotForm, endTime: newValue })}
+                                 ampm={false}
+                                 slotProps={{
+                                    textField: {
+                                       fullWidth: true,
+                                       InputProps: {
+                                          startAdornment: <AccessTimeIcon sx={{ mr: 1, color: 'action.active' }} />,
+                                       },
+                                    },
+                                 }}
+                              />
+                           </Stack>
+
+                           <TextField
+                              type="number"
+                              label="Slot Duration (minutes)"
+                              value={slotForm.slotDuration}
+                              onChange={(e) => setSlotForm({ ...slotForm, slotDuration: parseInt(e.target.value) })}
+                              fullWidth
+                              sx={{ mb: 3 }}
+                              slotProps={{
+                                 input: {
+                                    inputProps: { min: 15, step: 15 },
+                                    startAdornment: <ScheduleIcon sx={{ mr: 1, color: 'action.active' }} />,
+
+                                 }
+                              }}
+                              helperText="Typically 30 or 60 minutes for consultations"
+                           />
+
+                           <FormControlLabel
+                              control={
+                                 <Switch
+                                    checked={slotForm.isRecurring}
+                                    onChange={(e) => setSlotForm({ ...slotForm, isRecurring: e.target.checked })}
+                                 />
+                              }
+                              label="Recurring Weekly"
+                              sx={{ mb: 3 }}
+                           />
+
+                           <Box sx={{ display: 'flex', gap: 2 }}>
+                              <Button
+                                 fullWidth
+                                 variant="contained"
+                                 onClick={handleSaveSlot}
+                                 startIcon={isEditingSlot ? <EditIcon /> : <AddIcon />}
+                                 size="large"
+                              >
+                                 {isEditingSlot ? 'Update Slot' : 'Add Slot'}
+                              </Button>
+
+                              {isEditingSlot && (
+                                 <Button
+                                    variant="outlined"
+                                    onClick={resetSlotForm}
+                                    size="large"
+                                 >
+                                    Cancel
+                                 </Button>
+                              )}
+                           </Box>
+                        </Box>
+                     </Paper>
+                  </Grid>
+
+                  {/* Right Column: Schedule Preview */}
+                  <Grid size={{ xs: 12, lg: 8 }}>
+                     <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                           <Typography variant="h6">
+                              Weekly Schedule Preview
+                           </Typography>
+                           <Chip
+                              label={`${availabilitySlots.length} slots`}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                           />
+                        </Box>
+
+                        <Divider sx={{ mb: 3 }} />
+
+                        <Box sx={{ maxHeight: 500, overflow: 'auto' }}>
+                           <Grid container spacing={2}>
+                              {DAYS_OF_WEEK.map((day) => (
+                                 <Grid size={{ xs: 12 }} key={day.value}>
+                                    <Card variant="outlined">
+                                       <CardContent>
+                                          <Typography
+                                             variant="subtitle1"
+                                             fontWeight="bold"
+                                             sx={{
+                                                mb: 2,
+                                                color: groupedSlots[day.value]?.length > 0 ? 'primary.main' : 'text.secondary',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 1
+                                             }}
+                                          >
+                                             <Box
+                                                sx={{
+                                                   width: 8,
+                                                   height: 8,
+                                                   borderRadius: '50%',
+                                                   bgcolor: groupedSlots[day.value]?.length > 0 ? 'primary.main' : 'grey.400'
+                                                }}
+                                             />
+                                             {day.label}
+                                             <Chip
+                                                label={`${groupedSlots[day.value]?.length || 0} slots`}
+                                                size="small"
+                                                variant="outlined"
+                                                sx={{ ml: 'auto' }}
+                                             />
+                                          </Typography>
+
+                                          {groupedSlots[day.value]?.length === 0 ? (
+                                             <Typography
+                                                variant="body2"
+                                                color="text.secondary"
+                                                sx={{
+                                                   fontStyle: 'italic',
+                                                   textAlign: 'center',
+                                                   py: 2
+                                                }}
+                                             >
+                                                No availability set for this day
+                                             </Typography>
+                                          ) : (
+                                             <Grid container spacing={1}>
+                                                {groupedSlots[day.value]?.map((slot) => (
+                                                   <Grid size={{ xs: 12, sm: 6, md: 4 }} key={slot.id}>
+                                                      <Card
+                                                         variant="outlined"
+                                                         sx={{
+                                                            bgcolor: 'grey.50',
+                                                            borderColor: 'grey.200',
+                                                            position: 'relative',
+                                                            '&:hover': {
+                                                               bgcolor: 'grey.100',
+                                                            }
+                                                         }}
+                                                      >
+                                                         <CardContent sx={{ py: 1.5, px: 2 }}>
+                                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                               <Box>
+                                                                  <Typography variant="body2" fontWeight="medium">
+                                                                     {formatTimeDisplay(slot.startTime)} - {formatTimeDisplay(slot.endTime)}
+                                                                  </Typography>
+                                                                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                                                     {slot.slotDuration} min slots
+                                                                  </Typography>
+                                                               </Box>
+                                                               <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                                                  <IconButton
+                                                                     size="small"
+                                                                     onClick={() => handleEditSlot(slot)}
+                                                                     color="primary"
+                                                                  >
+                                                                     <EditIcon fontSize="small" />
+                                                                  </IconButton>
+                                                                  <IconButton
+                                                                     size="small"
+                                                                     onClick={() => handleDeleteSlot(slot.id)}
+                                                                     color="error"
+                                                                  >
+                                                                     <DeleteIcon fontSize="small" />
+                                                                  </IconButton>
+                                                               </Box>
+                                                            </Box>
+                                                         </CardContent>
+                                                      </Card>
+                                                   </Grid>
+                                                ))}
+                                             </Grid>
+                                          )}
+                                       </CardContent>
+                                    </Card>
+                                 </Grid>
+                              ))}
+                           </Grid>
+                        </Box>
+                     </Paper>
+                  </Grid>
+               </Grid>
+            </TabPanel>
+            
+            {/* Time Off Tab */}
+            <TabPanel value={activeTab} index={1}>
+               <Grid container spacing={3}>
+                  <Grid size={{ xs: 12, lg: 4 }}>
+                     <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                           <EventBusyIcon color="primary" />
+                           {isEditingUnavailability ? 'Edit Time Off' : 'Add Time Off'}
+                        </Typography>
+
+                        <Box sx={{ mt: 3 }}>
+                           <TextField
+                              fullWidth
+                              label="Title/Reason"
+                              value={unavailabilityForm.title}
+                              onChange={(e) => setUnavailabilityForm({ ...unavailabilityForm, title: e.target.value })}
+                              sx={{ mb: 3 }}
+                              placeholder="e.g., Vacation, Conference, Sick Leave"
+                           />
+
+                           <Stack spacing={3} sx={{ mb: 3 }}>
+                              <DatePicker
+                                 label="Start Date"
+                                 value={unavailabilityForm.startDate}
+                                 onChange={(date) => setUnavailabilityForm({ ...unavailabilityForm, startDate: date || new Date() })}
+                                 slotProps={{ textField: { fullWidth: true } }}
+                              />
+
+                              <DatePicker
+                                 label="End Date"
+                                 value={unavailabilityForm.endDate}
+                                 onChange={(date) => setUnavailabilityForm({ ...unavailabilityForm, endDate: date || new Date() })}
+                                 slotProps={{ textField: { fullWidth: true } }}
+                              />
+                           </Stack>
+
+                           <TextField
+                              fullWidth
+                              multiline
+                              rows={2}
+                              label="Additional Notes"
+                              value={unavailabilityForm.reason}
+                              onChange={(e) => setUnavailabilityForm({ ...unavailabilityForm, reason: e.target.value })}
+                              sx={{ mb: 3 }}
+                           />
+
+                           <FormControlLabel
+                              control={
+                                 <Switch
+                                    checked={unavailabilityForm.isAllDay}
+                                    onChange={(e) => setUnavailabilityForm({ ...unavailabilityForm, isAllDay: e.target.checked })}
+                                 />
+                              }
+                              label="All Day Event"
+                              sx={{ mb: 3 }}
+                           />
+
+                           <Box sx={{ display: 'flex', gap: 2 }}>
+                              <Button
+                                 fullWidth
+                                 variant="contained"
+                                 onClick={handleSaveUnavailability}
+                                 startIcon={isEditingUnavailability ? <EditIcon /> : <AddIcon />}
+                                 size="large"
+                              >
+                                 {isEditingUnavailability ? 'Update Time Off' : 'Add Time Off'}
+                              </Button>
+
+                              {isEditingUnavailability && (
+                                 <Button
+                                    variant="outlined"
+                                    onClick={resetUnavailabilityForm}
+                                    size="large"
+                                 >
+                                    Cancel
+                                 </Button>
+                              )}
+                           </Box>
+                        </Box>
+                     </Paper>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, lg: 8 }}>
+                     <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                           <Typography variant="h6">
+                              Scheduled Time Off
+                           </Typography>
+                           <Chip
+                              label={`${unavailability.length} entries`}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                           />
+                        </Box>
+
+                        <Divider sx={{ mb: 3 }} />
+
+                        {unavailability.length === 0 ? (
+                           <Alert severity="info" sx={{ mt: 2 }}>
+                              No time off scheduled. Add your vacations, conferences, or personal days here.
+                           </Alert>
+                        ) : (
+                           <Grid container spacing={2}>
+                              {unavailability.map((item) => (
+                                 <Grid size={{ xs: 12 }} key={item.id}>
+                                    <Card variant="outlined">
+                                       <CardContent>
+                                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                             <Box>
+                                                <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+                                                   {item.title}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary" gutterBottom>
+                                                   <strong>When:</strong> {new Date(item.startDate).toLocaleDateString()} - {new Date(item.endDate).toLocaleDateString()}
+                                                   {item.isAllDay ? ' (All Day)' : ''}
+                                                </Typography>
+                                                {item.reason && (
+                                                   <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                                                      <strong>Notes:</strong> {item.reason}
+                                                   </Typography>
+                                                )}
+                                             </Box>
+                                             <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                                <IconButton
+                                                   size="small"
+                                                   onClick={() => handleEditUnavailability(item)}
+                                                   color="primary"
+                                                >
+                                                   <EditIcon fontSize="small" />
+                                                </IconButton>
+                                                <IconButton
+                                                   size="small"
+                                                   onClick={() => handleDeleteUnavailability(item.id)}
+                                                   color="error"
+                                                >
+                                                   <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                             </Box>
+                                          </Box>
+                                       </CardContent>
+                                    </Card>
+                                 </Grid>
+                              ))}
+                           </Grid>
+                        )}
+                     </Paper>
+                  </Grid>
+               </Grid>
+            </TabPanel>
+
+            {/* Info Alert */}
+            <Alert severity="info" sx={{ mt: 4 }}>
+               <Typography variant="body2">
+                  <strong>How it works:</strong>
+                  <ul style={{ marginTop: 4, marginBottom: 4, paddingLeft: 20 }}>
+                     <li>Set recurring weekly availability for each day</li>
+                     <li>Add time off for vacations, conferences, or personal days</li>
+                     <li>Patients will only see available slots when booking</li>
+                     <li>Click edit icons to modify existing entries</li>
+                  </ul>
+               </Typography>
+            </Alert>
+         </Box>
+      </LocalizationProvider>
+   );
+};
+
+export default AvailabilitySettings;
