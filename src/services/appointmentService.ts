@@ -1,51 +1,5 @@
-// import { Appointment } from '../types';
-// import { apiService } from './api';
-
-// class AppointmentService {
-//     async getAppointments(params?: {
-//         status?: string;
-//         date?: Date;
-//         doctorId?: string;
-//         patientId?: string;
-//     }): Promise<Appointment[]> {
-//         return apiService.get<Appointment[]>('/appointments', { params });
-//     }
-
-//     async getAppointmentById(id: string): Promise<Appointment> {
-//         return apiService.get<Appointment>(`/appointments/${id}`);
-//     }
-
-//     async createAppointment(data: Partial<Appointment>): Promise<Appointment> {
-//         return apiService.post<Appointment>('/appointments', data);
-//     }
-
-//     async updateAppointment(id: string, data: Partial<Appointment>): Promise<Appointment> {
-//         return apiService.put<Appointment>(`/appointments/${id}`, data);
-//     }
-
-//     async updateAppointmentStatus(id: string, status: Appointment['status']): Promise<Appointment> {
-//         return apiService.patch<Appointment>(`/appointments/${id}/status`, { status });
-//     }
-
-//     async cancelAppointment(id: string, reason?: string): Promise<Appointment> {
-//         return apiService.patch<Appointment>(`/appointments/${id}/cancel`, { reason });
-//     }
-
-//     async getTodayAppointments(): Promise<Appointment[]> {
-//         return apiService.get<Appointment[]>('/appointments/today');
-//     }
-
-//     async getUpcomingAppointments(limit?: number): Promise<Appointment[]> {
-//         return apiService.get<Appointment[]>('/appointments/upcoming', {
-//             params: { limit },
-//         });
-//     }
-// }
-
-// export const appointmentService = new AppointmentService();
-
-
 import { Appointment, AppointmentStatus, PaymentStatus } from '../types';
+import { mockStorage } from '../utils/mockStorage';
 
 // Reuse the same mock appointments from bookingService
 const mockAppointments: Appointment[] = [
@@ -117,6 +71,7 @@ const mockAppointments: Appointment[] = [
 class AppointmentService {
   private appointments: Appointment[] = [...mockAppointments];
 
+  // GET /api/appointments
   async getAppointments(params?: {
     status?: string;
     date?: Date;
@@ -126,66 +81,73 @@ class AppointmentService {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    let filteredAppointments = [...this.appointments];
+    let filtered = mockStorage.getAppointments();
 
+    // Backend Logic: Apply Filters
     if (params?.doctorId) {
-      filteredAppointments = filteredAppointments.filter(appt => appt.doctorId === params.doctorId);
+      filtered = filtered.filter(appt => appt.doctorId === params.doctorId);
     }
 
     if (params?.patientId) {
-      filteredAppointments = filteredAppointments.filter(appt => appt.patientId === params.patientId);
+      filtered = filtered.filter(appt => appt.patientId === params.patientId);
     }
 
     if (params?.status) {
-      filteredAppointments = filteredAppointments.filter(appt => appt.status === params.status);
+      filtered = filtered.filter(appt => appt.status === params.status);
     }
 
     if (params?.date) {
-      const targetDate = params.date.toDateString();
-      filteredAppointments = filteredAppointments.filter(appt => 
+      const targetDate = new Date(params.date).toDateString();
+      filtered = filtered.filter(appt => 
         new Date(appt.date).toDateString() === targetDate
       );
     }
 
-    return filteredAppointments;
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
   async getAppointmentById(id: string): Promise<Appointment> {
     await new Promise(resolve => setTimeout(resolve, 200));
     
-    const appointment = this.appointments.find(a => a.id === id);
+    const appointment = mockStorage.getAppointments().find(a => a.id === id);
     if (!appointment) throw new Error('Appointment not found');
     
     return appointment;
   }
 
+  // Internal method used by BookingService
   async createAppointment(data: Partial<Appointment>): Promise<Appointment> {
     await new Promise(resolve => setTimeout(resolve, 300));
     
+    const appointments = mockStorage.getAppointments();
     const newAppointment: Appointment = {
       ...data,
-      id: `appt_${Date.now()}`,
+      id: appointments.length + 1 + '',
       createdAt: new Date(),
       updatedAt: new Date(),
     } as Appointment;
     
-    this.appointments.unshift(newAppointment);
+    appointments.unshift(newAppointment);
+    mockStorage.saveAppointments(appointments);
     return newAppointment;
   }
 
   async updateAppointment(id: string, data: Partial<Appointment>): Promise<Appointment> {
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    const index = this.appointments.findIndex(appt => appt.id === id);
+    const appointments = mockStorage.getAppointments();
+    const index = appointments.findIndex(appt => appt.id === id);
     if (index === -1) throw new Error('Appointment not found');
     
-    this.appointments[index] = {
-      ...this.appointments[index],
+    appointments[index] = {
+      ...appointments[index],
       ...data,
       updatedAt: new Date(),
     };
     
-    return this.appointments[index];
+    mockStorage.saveAppointments(appointments);
+    
+    return appointments[index];
   }
 
   async updateAppointmentStatus(id: string, status: Appointment['status']): Promise<Appointment> {
@@ -193,11 +155,16 @@ class AppointmentService {
   }
 
   async cancelAppointment(id: string, reason?: string): Promise<Appointment> {
+    const appt = await this.getAppointmentById(id);
+    const updatedNotes = reason ? `${appt.notes || ''}\n[Cancelled]: ${reason}` : appt.notes;
+
     return this.updateAppointment(id, { 
       status: AppointmentStatus.CANCELLED,
-      notes: reason ? `Cancelled: ${reason}` : 'Cancelled',
+      notes: updatedNotes,
     });
   }
+
+  // Extra methods
 
   async getTodayAppointments(): Promise<Appointment[]> {
     const today = new Date().toDateString();

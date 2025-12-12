@@ -1,3 +1,4 @@
+import { mockStorage } from '@/utils/mockStorage';
 import { Service, ServiceType } from '../types';
 
 // Mock data for development - Pre-populated with your example services
@@ -38,7 +39,8 @@ const mockServices: Service[] = [
 ];
 
 class ServiceService {
-    
+
+    // GET /api/services
     async getServices(params?: {
         doctorId?: string;
         isActive?: boolean;
@@ -49,90 +51,98 @@ class ServiceService {
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        let filteredServices = [...(mockServices) || []];
+        let services = mockStorage.getServices();
 
-        // Apply filters
+        // Backend Logic: Filtering
         if (params?.doctorId) {
-            filteredServices = filteredServices.filter(service =>
-                service.doctorId === params.doctorId || !service.doctorId
-            );
+            services = services.filter(s => s.doctorId === params.doctorId || !s.doctorId);
         }
 
         if (params?.isActive !== undefined) {
-            filteredServices = filteredServices.filter(service =>
-                service.isActive === params.isActive
-            );
+            services = services.filter(s => s.isActive === params.isActive);
         }
 
         if (params?.type) {
-            filteredServices = filteredServices.filter(service =>
+            services = services.filter(service =>
                 service.type === params.type
             );
         }
 
         if (params?.search) {
             const searchTerm = params.search.toLowerCase();
-            filteredServices = filteredServices.filter(service =>
+            services = services.filter(service =>
                 service.name.toLowerCase().includes(searchTerm) ||
                 service.description.toLowerCase().includes(searchTerm)
             );
         }
 
-        return filteredServices;
+        return services;
     }
 
+    // GET /api/services/:id
     async getServiceById(id: string): Promise<Service> {
         await new Promise(resolve => setTimeout(resolve, 200));
 
-        const service = mockServices.find(s => s.id === id);
+        const services = mockStorage.getServices();
+        const service = services.find(s => s.id === id);
         if (!service) throw new Error('Service not found');
 
         return service;
     }
-
+    
+    // POST /api/services
     async createService(service: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>): Promise<Service> {
         await new Promise(resolve => setTimeout(resolve, 300));
-
+        
+        const services = mockStorage.getServices();
         const newService: Service = {
             ...service,
-            id: mockServices.length+1 + '', // Simple ID generation
+            id: services.length + 1 + '', // Simple ID generation
             createdAt: new Date(),
             updatedAt: new Date(),
         };
 
-        mockServices.unshift(newService);
+        services.unshift(newService);
+        mockStorage.saveServices(services);
         return newService;
     }
 
+    // PUT /api/services/:id
     async updateService(id: string, updates: Partial<Service>): Promise<Service> {
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        const index = mockServices.findIndex(service => service.id === id);
+        const services = mockStorage.getServices();
+        const index = services.findIndex(service => service.id === id);
         if (index === -1) throw new Error('Service not found');
 
-        mockServices[index] = {
-            ...mockServices[index],
+        services[index] = {
+            ...services[index],
             ...updates,
             updatedAt: new Date(),
         };
 
-        return mockServices[index];
+        return services[index];
     }
 
+    // DELETE /api/services/:id
     async deleteService(id: string): Promise<void> {
         await new Promise(resolve => setTimeout(resolve, 300));
-
-        const index = mockServices.findIndex(service => service.id === id);
-        if (index === -1) throw new Error('Service not found');
-
-        mockServices.splice(index, 1);
+        const services = mockStorage.getServices().filter(s => s.id !== id);
+        mockStorage.saveServices(services);
     }
 
-    async toggleServiceStatus(id: string, mockServices: Service[]): Promise<Service> {
-        const service = mockServices.find(s => s.id === id);
-        if (!service) throw new Error('Service not found');
+    // PATCH /api/services/:id/toggle-status
+    async toggleServiceStatus(id: string, _mockServices: Service[]): Promise<Service> {
+        // Fetches fresh from storage to ensure consistency
+        const services = mockStorage.getServices();
+        const index = services.findIndex(s => s.id === id);
+        if (index === -1) throw new Error('Service not found');
 
-        return this.updateService(id, { isActive: !service.isActive });
+        services[index].isActive = !services[index].isActive;
+        services[index].updatedAt = new Date();
+        mockStorage.saveServices(services);
+        
+        return services[index];
     }
 
     async bulkUpdateStatus(ids: string[], isActive: boolean, mockServices: Service[]): Promise<void> {
@@ -150,7 +160,7 @@ class ServiceService {
         });
     }
 
-    // Statistics for dashboard
+    // GET /api/services/stats
     async getServiceStats(doctorId?: string) {
         const services = await this.getServices({ doctorId });
 
