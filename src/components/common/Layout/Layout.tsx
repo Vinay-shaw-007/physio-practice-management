@@ -1,12 +1,13 @@
 import {
-    CalendarMonth,
+    CalendarToday,
     ChevronLeft,
     Dashboard,
+    EventAvailable,
     LocalHospital,
     Logout,
     Menu as MenuIcon,
     People,
-    Settings,
+    Settings
 } from '@mui/icons-material';
 import {
     AppBar,
@@ -34,13 +35,21 @@ import { useAppSelector } from '../../../store/store';
 
 const drawerWidth = 280;
 
+// const menuItems = [
+//     { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
+//     { text: 'Appointments', icon: <CalendarMonth />, path: '/appointments' },
+//     { text: 'Patients', icon: <People />, path: '/patients' },
+//     { text: 'Services', icon: <LocalHospital />, path: '/services' },
+//     { text: 'Availability Settings', icon: <LocalHospital />, path: '/availability' },
+//     { text: 'Settings', icon: <Settings />, path: '/settings' },
+// ];
+
 const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-    { text: 'Appointments', icon: <CalendarMonth />, path: '/appointments' },
-    { text: 'Patients', icon: <People />, path: '/patients' },
-    { text: 'Services', icon: <LocalHospital />, path: '/services' },
-    { text: 'Availability Settings', icon: <LocalHospital />, path: '/availability' },
-    { text: 'Settings', icon: <Settings />, path: '/settings' },
+    { text: 'Appointments', icon: <CalendarToday />, path: '/appointments' },
+    { text: 'Patients', icon: <People />, path: '/patients' }, // Added this
+    { text: 'Availability', icon: <EventAvailable />, path: '/availability' },
+    { text: 'Services', icon: <Settings />, path: '/services' },
 ];
 
 const Layout: React.FC = () => {

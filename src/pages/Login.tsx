@@ -78,7 +78,7 @@ const LoginPage: React.FC = () => {
                 if (role === UserRole.DOCTOR) {
                     navigate('/dashboard');
                 } else {
-                    navigate('/dashboards');
+                    navigate('/patient/dashboard');
                 }
             } catch (error: any) {
                 dispatch(loginFailure(error.message || 'Login failed'));

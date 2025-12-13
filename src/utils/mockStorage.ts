@@ -118,6 +118,26 @@ class MockStorage {
         this.setItem(STORAGE_KEYS.APPOINTMENTS, appointments);
     }
 
+    // --- Patients (Mock Profile) ---
+    // In a real app, this would be a "users" table. 
+    // For now, we store one mock patient profile in localStorage to allow updates.
+    getPatientProfile(defaultProfile: any): any {
+        return this.getItem('physiopro_patient_profile', defaultProfile);
+    }
+
+    savePatientProfile(profile: any) {
+        this.setItem('physiopro_patient_profile', profile);
+    }
+
+    // --- Medical Records ---
+    getMedicalRecords(defaultRecords: any[]): any[] {
+        return this.getItem('physiopro_medical_records', defaultRecords);
+    }
+
+    saveMedicalRecords(records: any[]) {
+        this.setItem('physiopro_medical_records', records);
+    }
+
     // Reset DB (Useful for testing)
     clearAll() {
         localStorage.clear();

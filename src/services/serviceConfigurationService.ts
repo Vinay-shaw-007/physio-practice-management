@@ -2,41 +2,41 @@ import { mockStorage } from '@/utils/mockStorage';
 import { Service, ServiceType } from '../types';
 
 // Mock data for development - Pre-populated with your example services
-const mockServices: Service[] = [
-    {
-        id: '1',
-        name: 'Clinic Consultation',
-        description: 'In-person consultation at the clinic',
-        duration: 30,
-        price: 600,
-        type: ServiceType.CLINIC_VISIT,
-        isActive: true,
-        createdAt: new Date('2024-01-01'),
-        updatedAt: new Date('2024-01-01'),
-    },
-    {
-        id: '2',
-        name: 'Home Visit',
-        description: 'Physiotherapy session at patient\'s home',
-        duration: 60,
-        price: 1200,
-        type: ServiceType.HOME_VISIT,
-        isActive: true,
-        createdAt: new Date('2024-01-01'),
-        updatedAt: new Date('2024-01-01'),
-    },
-    {
-        id: '3',
-        name: 'Video Consultation',
-        description: 'Remote consultation via video call',
-        duration: 30,
-        price: 800,
-        type: ServiceType.VIDEO_CONSULT,
-        isActive: true,
-        createdAt: new Date('2024-01-01'),
-        updatedAt: new Date('2024-01-01'),
-    },
-];
+// const mockServices: Service[] = [
+//     {
+//         id: '1',
+//         name: 'Clinic Consultation',
+//         description: 'In-person consultation at the clinic',
+//         duration: 30,
+//         price: 600,
+//         type: ServiceType.CLINIC_VISIT,
+//         isActive: true,
+//         createdAt: new Date('2024-01-01'),
+//         updatedAt: new Date('2024-01-01'),
+//     },
+//     {
+//         id: '2',
+//         name: 'Home Visit',
+//         description: 'Physiotherapy session at patient\'s home',
+//         duration: 60,
+//         price: 1200,
+//         type: ServiceType.HOME_VISIT,
+//         isActive: true,
+//         createdAt: new Date('2024-01-01'),
+//         updatedAt: new Date('2024-01-01'),
+//     },
+//     {
+//         id: '3',
+//         name: 'Video Consultation',
+//         description: 'Remote consultation via video call',
+//         duration: 30,
+//         price: 800,
+//         type: ServiceType.VIDEO_CONSULT,
+//         isActive: true,
+//         createdAt: new Date('2024-01-01'),
+//         updatedAt: new Date('2024-01-01'),
+//     },
+// ];
 
 class ServiceService {
 
@@ -145,19 +145,21 @@ class ServiceService {
         return services[index];
     }
 
-    async bulkUpdateStatus(ids: string[], isActive: boolean, mockServices: Service[]): Promise<void> {
+    async bulkUpdateStatus(ids: string[], isActive: boolean, _mockServices: Service[]): Promise<void> {
         await new Promise(resolve => setTimeout(resolve, 300));
 
+        const services = mockStorage.getServices();
         ids.forEach(id => {
-            const index = mockServices.findIndex(service => service.id === id);
+            const index = services.findIndex(service => service.id === id);
             if (index !== -1) {
-                mockServices[index] = {
-                    ...mockServices[index],
+                services[index] = {
+                    ...services[index],
                     isActive,
                     updatedAt: new Date(),
                 };
             }
         });
+        mockStorage.saveServices(services);
     }
 
     // GET /api/services/stats

@@ -38,7 +38,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
         if (user.role === UserRole.DOCTOR) {
             return <Navigate to="/dashboard" replace />;
         } else if (user.role === UserRole.PATIENT) {
-            return <Navigate to="/dashboards" replace />;
+            return <Navigate to="/patient/dashboard" replace />;
         }
         return <Navigate to="/" replace />;
     }

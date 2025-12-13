@@ -1,14 +1,13 @@
 import {
+    AccountCircle,
     CalendarMonth,
     ChevronLeft,
     Dashboard,
+    Description,
     LocalHospital,
     Logout,
-    MedicalServices,
     Menu as MenuIcon,
-    Person,
-    Receipt,
-    Settings
+    Receipt
 } from '@mui/icons-material';
 import {
     AppBar,
@@ -36,16 +35,23 @@ import { useAppSelector } from '../../../store/store';
 
 const drawerWidth = 280;
 
-const menuItems = [
-    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboards' },
-    { text: 'Appointments', icon: <CalendarMonth />, path: '/patient/appointments' },
-    { text: 'Medical Records', icon: <MedicalServices />, path: '/patient/medical-records' },
-    { text: 'Billing & Invoices', icon: <Receipt />, path: '/patient/billing' },
-    { text: 'Book Appointment', icon: <LocalHospital />, path: '/book-appointment' },
-    { text: 'Profile', icon: <Person />, path: '/profile' },
-    { text: 'Settings', icon: <Settings />, path: '/patient/settings' },
-];
+// const menuItems = [
+//     { text: 'Dashboard', icon: <Dashboard />, path: '/dashboards' },
+//     { text: 'Appointments', icon: <CalendarMonth />, path: '/patient/appointments' },
+//     { text: 'Medical Records', icon: <MedicalServices />, path: '/patient/medical-records' },
+//     { text: 'Billing & Invoices', icon: <Receipt />, path: '/patient/billing' },
+//     { text: 'Book Appointment', icon: <LocalHospital />, path: '/book-appointment' },
+//     { text: 'Profile', icon: <Person />, path: '/profile' },
+//     { text: 'Settings', icon: <Settings />, path: '/patient/settings' },
+// ];
 
+const menuItems = [
+    { text: 'Dashboard', icon: <Dashboard />, path: '/patient/dashboard' },
+    { text: 'My Appointments', icon: <CalendarMonth />, path: '/patient/appointments' },
+    { text: 'Medical Records', icon: <Description />, path: '/patient/medical-records' },
+    { text: 'Billing & Invoices', icon: <Receipt />, path: '/patient/billing' },
+    { text: 'My Profile', icon: <AccountCircle />, path: '/patient/profile' },
+];
 const PatientLayout: React.FC = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));

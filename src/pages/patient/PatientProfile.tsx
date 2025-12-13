@@ -1,8 +1,8 @@
 import {
     AccountCircle as AccountCircleIcon,
     Add as AddIcon,
-    BugReport as BugReportIcon,
     Bloodtype as BloodtypeIcon,
+    BugReport as BugReportIcon,
     CalendarMonth as CalendarIcon,
     CameraAlt as CameraAltIcon,
     Email as EmailIcon,
@@ -50,9 +50,9 @@ import { useFormik } from 'formik';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as yup from 'yup';
-import { MedicalRecord, patientService } from '../services/patientService';
-import { useAppSelector } from '../store/store';
-import { Gender, Patient } from '../types';
+import { MedicalRecord, patientService } from '../../services/patientService';
+import { useAppSelector } from '../../store/store';
+import { Gender, Patient } from '../../types';
 
 interface TabPanelProps {
     children?: React.ReactNode;

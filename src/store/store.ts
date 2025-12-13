@@ -14,27 +14,30 @@ export const store = configureStore({
         // Add more reducers here
     },
     middleware: getDefaultMiddleware =>
+        // getDefaultMiddleware({
+        //     serializableCheck: {
+        //         // Ignore these action types
+        //         ignoredActions: ['persist/PERSIST', 'auth/loginSuccess', 'auth/loginStart'],
+        //         // Ignore these field paths in all actions
+        //         ignoredActionPaths: [
+        //             'meta.arg',
+        //             'payload.date',
+        //             'payload.user.createdAt',
+        //             'payload.user.updatedAt',
+        //             'payload.services',  // Ignore services array in actions
+        //         ],
+        //         // Ignore these paths in the state - bypass serialization check for Date objects
+        //         ignoredPaths: [
+        //             'appointments.filters.date',
+        //             'availability.availabilitySlots',
+        //             'auth.user.createdAt',
+        //             'auth.user.updatedAt',
+        //             'services.services',  // Bypass all Date checks in services array (createdAt, updatedAt)
+        //         ],
+        //     },
+        // }),
         getDefaultMiddleware({
-            serializableCheck: {
-                // Ignore these action types
-                ignoredActions: ['persist/PERSIST', 'auth/loginSuccess', 'auth/loginStart'],
-                // Ignore these field paths in all actions
-                ignoredActionPaths: [
-                    'meta.arg',
-                    'payload.date',
-                    'payload.user.createdAt',
-                    'payload.user.updatedAt',
-                    'payload.services',  // Ignore services array in actions
-                ],
-                // Ignore these paths in the state - bypass serialization check for Date objects
-                ignoredPaths: [
-                    'appointments.filters.date',
-                    'availability.availabilitySlots',
-                    'auth.user.createdAt',
-                    'auth.user.updatedAt',
-                    'services.services',  // Bypass all Date checks in services array (createdAt, updatedAt)
-                ],
-            },
+            serializableCheck: false,
         }),
 });
 
