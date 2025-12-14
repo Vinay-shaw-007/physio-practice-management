@@ -69,7 +69,7 @@ const mockAppointments: Appointment[] = [
 ];
 
 class AppointmentService {
-  private appointments: Appointment[] = [...mockAppointments];
+  // private appointments: Appointment[] = [...mockAppointments];
 
   // GET /api/appointments
   async getAppointments(params?: {
@@ -92,7 +92,7 @@ class AppointmentService {
       filtered = filtered.filter(appt => appt.patientId === params.patientId);
     }
 
-    if (params?.status) {
+    if (params?.status && params.status !== 'ALL') {
       filtered = filtered.filter(appt => appt.status === params.status);
     }
 
@@ -168,14 +168,16 @@ class AppointmentService {
 
   async getTodayAppointments(): Promise<Appointment[]> {
     const today = new Date().toDateString();
-    return this.appointments.filter(appt => 
+    const appointments = mockStorage.getAppointments();
+    return appointments.filter(appt => 
       new Date(appt.date).toDateString() === today
     );
   }
 
   async getUpcomingAppointments(limit?: number): Promise<Appointment[]> {
     const now = new Date();
-    const upcoming = this.appointments.filter(appt => 
+    const appointments = mockStorage.getAppointments();
+    const upcoming = appointments.filter(appt => 
       new Date(appt.date) > now
     ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     

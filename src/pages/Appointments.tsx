@@ -1,3 +1,4 @@
+import { appointmentService } from '@/services/appointmentService';
 import {
   AccessTime,
   CalendarMonth,
@@ -30,7 +31,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { format } from 'date-fns';
 import React, { useEffect, useState } from 'react';
 import { useAppSelector } from '../store/store';
-import { Appointment, AppointmentStatus, PaymentStatus } from '../types';
+import { Appointment, AppointmentStatus } from '../types';
 
 const statusColors: Record<AppointmentStatus, string> = {
   [AppointmentStatus.NEW]: '#3b82f6',
@@ -50,7 +51,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
   [AppointmentStatus.CANCELLED]: 'Cancelled',
 };
 
-const AppointmentsPage: React.FC = () => {
+const Appointments: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AppointmentStatus | 'ALL'>('ALL');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
@@ -74,70 +75,80 @@ const AppointmentsPage: React.FC = () => {
       // For demo, we'll use mock data. In production, use:
       // const data = await appointmentService.getAppointments();
 
-      const mockAppointments: Appointment[] = [
-        {
-          id: '1',
-          patientId: '1',
-          doctorId: user?.id || '1',
-          serviceId: '1',
-          date: new Date(),
-          startTime: '10:00',
-          endTime: '10:30',
-          status: AppointmentStatus.CONFIRMED,
-          notes: 'Follow-up for knee pain',
-          symptoms: ['Knee pain', 'Swelling'],
-          paymentStatus: PaymentStatus.PAID,
-          amount: 600,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          metadata: {
-            patientName: 'John Doe',
-            serviceName: 'Clinic Consultation',
-          },
-        },
-        {
-          id: '2',
-          patientId: '2',
-          doctorId: user?.id || '1',
-          serviceId: '2',
-          date: new Date(),
-          startTime: '11:00',
-          endTime: '12:00',
-          status: AppointmentStatus.NEW,
-          notes: 'Initial assessment',
-          symptoms: ['Back pain'],
-          paymentStatus: PaymentStatus.PENDING,
-          amount: 1200,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          metadata: {
-            patientName: 'Jane Smith',
-            serviceName: 'Home Visit',
-          },
-        },
-        {
-          id: '3',
-          patientId: '3',
-          doctorId: user?.id || '1',
-          serviceId: '3',
-          date: new Date(Date.now() + 86400000),
-          startTime: '14:00',
-          endTime: '14:30',
-          status: AppointmentStatus.AWAITING,
-          notes: 'Video follow-up',
-          symptoms: ['Shoulder pain'],
-          paymentStatus: PaymentStatus.PENDING,
-          amount: 800,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          metadata: {
-            patientName: 'Robert Johnson',
-            serviceName: 'Video Consultation',
-          },
-        },
-      ];
+      // const mockAppointments: Appointment[] = [
+      //   // {
+      //   //   id: '1',
+      //   //   patientId: '1',
+      //   //   doctorId: user?.id || '1',
+      //   //   serviceId: '1',
+      //   //   date: new Date(),
+      //   //   startTime: '10:00',
+      //   //   endTime: '10:30',
+      //   //   status: AppointmentStatus.CONFIRMED,
+      //   //   notes: 'Follow-up for knee pain',
+      //   //   symptoms: ['Knee pain', 'Swelling'],
+      //   //   paymentStatus: PaymentStatus.PAID,
+      //   //   amount: 600,
+      //   //   createdAt: new Date(),
+      //   //   updatedAt: new Date(),
+      //   //   metadata: {
+      //   //     patientName: 'John Doe',
+      //   //     serviceName: 'Clinic Consultation',
+      //   //   },
+      //   // },
+      //   // {
+      //   //   id: '2',
+      //   //   patientId: '2',
+      //   //   doctorId: user?.id || '1',
+      //   //   serviceId: '2',
+      //   //   date: new Date(),
+      //   //   startTime: '11:00',
+      //   //   endTime: '12:00',
+      //   //   status: AppointmentStatus.NEW,
+      //   //   notes: 'Initial assessment',
+      //   //   symptoms: ['Back pain'],
+      //   //   paymentStatus: PaymentStatus.PENDING,
+      //   //   amount: 1200,
+      //   //   createdAt: new Date(),
+      //   //   updatedAt: new Date(),
+      //   //   metadata: {
+      //   //     patientName: 'Jane Smith',
+      //   //     serviceName: 'Home Visit',
+      //   //   },
+      //   // },
+      //   // {
+      //   //   id: '3',
+      //   //   patientId: '3',
+      //   //   doctorId: user?.id || '1',
+      //   //   serviceId: '3',
+      //   //   date: new Date(Date.now() + 86400000),
+      //   //   startTime: '14:00',
+      //   //   endTime: '14:30',
+      //   //   status: AppointmentStatus.AWAITING,
+      //   //   notes: 'Video follow-up',
+      //   //   symptoms: ['Shoulder pain'],
+      //   //   paymentStatus: PaymentStatus.PENDING,
+      //   //   amount: 800,
+      //   //   createdAt: new Date(),
+      //   //   updatedAt: new Date(),
+      //   //   metadata: {
+      //   //     patientName: 'Robert Johnson',
+      //   //     serviceName: 'Video Consultation',
+      //   //   },
+      //   // },
+      // ];
 
-      setAppointments(mockAppointments);
+      // Fetch real data from the service using the logged-in doctor's ID
+      const doctorId = user?.id || '1';
+      const data = await appointmentService.getAppointments({
+        doctorId: doctorId,
+        status: 'ALL' as AppointmentStatus
+      });
+
+      console.log(data);
+      
+
+      setAppointments(data);
     } catch (error) {
       console.error('Failed to load appointments:', error);
     } finally {
@@ -311,7 +322,7 @@ const AppointmentsPage: React.FC = () => {
         ) : (
           <Grid container spacing={3}>
             {filteredAppointments.map(appointment => (
-              <Grid size={{xs:12}}  key={appointment.id}>
+              <Grid size={{ xs: 12 }} key={appointment.id}>
                 <Card>
                   <CardContent>
                     <Box
@@ -412,4 +423,4 @@ const AppointmentsPage: React.FC = () => {
   );
 };
 
-export default AppointmentsPage;
+export default Appointments;

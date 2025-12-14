@@ -7,7 +7,7 @@ import Layout from './components/common/Layout/Layout';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 // Pages
-import AppointmentsPage from './pages/Appointments';
+import Appointments from './pages/Appointments';
 import AvailabilitySettings from './pages/AvailabilitySettings';
 import BookAppointment from './pages/BookAppointment';
 import DoctorDashboard from './pages/DoctorDashboard';
@@ -27,6 +27,7 @@ import PatientBilling from './pages/patient/PatientBilling';
 import PatientMedicalRecords from './pages/patient/PatientMedicalRecords';
 import PatientProfile from './pages/patient/PatientProfile';
 import { UserRole } from './types';
+import DoctorProfile from './pages/DoctorProfile';
 
 const App: React.FC = () => {
     // Show loading screen while validating token
@@ -71,12 +72,13 @@ const App: React.FC = () => {
                     <Route element={<Layout />}>
                         <Route index element={<Navigate to="/dashboard" replace />} />
                         <Route path="dashboard" element={<DoctorDashboard />} />
-                        <Route path="appointments" element={<AppointmentsPage />} />
-                        <Route path="appointments/:id" element={<AppointmentsPage />} />
+                        <Route path="appointments" element={<Appointments />} />
+                        <Route path="appointments/:id" element={<Appointments />} />
                         <Route path="patients" element={<PatientList />} />
                         <Route path="availability" element={<AvailabilitySettings />} />
                         <Route path="services" element={<ServiceConfiguration />} />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route path="/profile" element={<DoctorProfile />} />
                     </Route>
                 </Route>
 

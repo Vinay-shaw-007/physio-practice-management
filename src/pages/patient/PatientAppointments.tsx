@@ -1,3 +1,4 @@
+// 1st Iteration
 // import {
 //   ArrowBack as ArrowBackIcon,
 //   CalendarMonth as CalendarIcon,
@@ -430,208 +431,516 @@
 
 // export default PatientAppointments;
 
+// 2nd Iteration
+// import {
+//   CalendarToday as CalendarIcon,
+//   EventBusy as CancelIcon,
+//   EditCalendar as RescheduleIcon,
+//   AccessTime as TimeIcon
+// } from '@mui/icons-material';
+// import {
+//   Alert,
+//   Box,
+//   Button,
+//   Card,
+//   CardContent,
+//   Chip,
+//   CircularProgress,
+//   Container,
+//   Dialog,
+//   DialogActions,
+//   DialogContent,
+//   DialogTitle,
+//   Grid,
+//   Paper,
+//   Tab,
+//   Tabs,
+//   Typography
+// } from '@mui/material';
+// import { DatePicker, TimePicker } from '@mui/x-date-pickers';
+// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+// import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+// import { format } from 'date-fns';
+// import React, { useEffect, useState } from 'react';
+// import { bookingService } from '../../services/bookingService';
+// import { patientService } from '../../services/patientService';
+// import { useAppSelector } from '../../store/store';
+// import { Appointment, AppointmentStatus } from '../../types';
+
+// const PatientAppointments: React.FC = () => {
+//   const { user } = useAppSelector((state) => state.auth);
+//   const [tabValue, setTabValue] = useState(0);
+//   const [loading, setLoading] = useState(true);
+//   const [appointments, setAppointments] = useState<Appointment[]>([]);
+
+//   // Reschedule Dialog State
+//   const [rescheduleOpen, setRescheduleOpen] = useState(false);
+//   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
+//   const [newDate, setNewDate] = useState<Date | null>(null);
+//   const [newTime, setNewTime] = useState<Date | null>(null);
+//   const [rescheduleLoading, setRescheduleLoading] = useState(false);
+
+//   useEffect(() => {
+//     loadAppointments();
+//   }, [user]);
+
+//   const loadAppointments = async () => {
+//     setLoading(true);
+//     try {
+//       const all = await patientService.getUpcomingAppointments(user?.id || '1');
+//       const past = await patientService.getPastAppointments(user?.id || '1');
+//       setAppointments([...all, ...past]);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const handleCancel = async (id: string) => {
+//     if (window.confirm('Are you sure you want to cancel this appointment?')) {
+//       try {
+//         await bookingService.cancelBooking(id, 'Patient requested cancellation');
+//         loadAppointments();
+//       } catch (error) {
+//         alert('Failed to cancel appointment');
+//       }
+//     }
+//   };
+
+//   const openReschedule = (appt: Appointment) => {
+//     setSelectedAppt(appt);
+//     setNewDate(new Date(appt.date));
+//     const [h, m] = appt.startTime.split(':').map(Number);
+//     const t = new Date(); t.setHours(h, m, 0, 0);
+//     setNewTime(t);
+//     setRescheduleOpen(true);
+//   };
+
+//   const handleRescheduleSubmit = async () => {
+//     if (!selectedAppt || !newDate || !newTime) return;
+
+//     setRescheduleLoading(true);
+//     try {
+//       const timeStr = format(newTime, 'HH:mm');
+//       await bookingService.rescheduleAppointment(selectedAppt.id, newDate, timeStr);
+//       setRescheduleOpen(false);
+//       loadAppointments();
+//       alert('Appointment rescheduled successfully!');
+//     } catch (error) {
+//       console.error(error);
+//       alert('Failed to reschedule. Slot might be unavailable.');
+//     } finally {
+//       setRescheduleLoading(false);
+//     }
+//   };
+
+//   const filteredAppointments = appointments.filter(a => {
+//     const apptDate = new Date(a.date);
+//     apptDate.setHours(0, 0, 0, 0);
+
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+
+//     const isUpcoming = apptDate >= today &&
+//       a.status !== AppointmentStatus.CANCELLED &&
+//       a.status !== AppointmentStatus.COMPLETED;
+
+//     return tabValue === 0 ? isUpcoming : !isUpcoming;
+//   });
+
+//   return (
+//     <Container maxWidth="md" sx={{ py: 4 }}>
+//       <Typography variant="h4" fontWeight="bold" gutterBottom>My Appointments</Typography>
+
+//       <Paper sx={{ mb: 3 }}>
+//         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} indicatorColor="primary" textColor="primary" variant="fullWidth">
+//           <Tab label="Upcoming" />
+//           <Tab label="Past / Cancelled" />
+//         </Tabs>
+//       </Paper>
+
+//       {loading ? <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} /> : (
+//         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+//           {filteredAppointments.length === 0 ? (
+//             <Alert severity="info">No appointments found in this category.</Alert>
+//           ) : (
+//             filteredAppointments.map((appt) => (
+//               <Card key={appt.id} variant="outlined" sx={{ borderColor: tabValue === 0 ? 'primary.light' : 'divider' }}>
+//                 <CardContent>
+//                   <Grid container spacing={2} alignItems="center">
+//                     <Grid size={{ xs: 12, sm: 8 }}>
+//                       <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+//                         <Chip label={appt.status} color={appt.status === 'CONFIRMED' ? 'success' : 'default'} size="small" />
+//                         <Chip label={appt.metadata?.serviceName} variant="outlined" size="small" />
+//                       </Box>
+//                       <Typography variant="h6">Dr. {appt.metadata?.doctorName}</Typography>
+//                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1, color: 'text.secondary' }}>
+//                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+//                           <CalendarIcon fontSize="small" />
+//                           <Typography variant="body2">{format(new Date(appt.date), 'EEE, MMM d, yyyy')}</Typography>
+//                         </Box>
+//                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+//                           <TimeIcon fontSize="small" />
+//                           <Typography variant="body2">{appt.startTime} - {appt.endTime}</Typography>
+//                         </Box>
+//                       </Box>
+//                     </Grid>
+
+//                     {tabValue === 0 && (
+//                       <Grid size={{ xs: 12, sm: 4 }} sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+//                         <Button
+//                           variant="outlined"
+//                           color="primary"
+//                           startIcon={<RescheduleIcon />}
+//                           onClick={() => openReschedule(appt)}
+//                         >
+//                           Reschedule
+//                         </Button>
+//                         <Button
+//                           variant="outlined"
+//                           color="error"
+//                           startIcon={<CancelIcon />}
+//                           onClick={() => handleCancel(appt.id)}
+//                         >
+//                           Cancel
+//                         </Button>
+//                       </Grid>
+//                     )}
+//                   </Grid>
+//                 </CardContent>
+//               </Card>
+//             ))
+//           )}
+//         </Box>
+//       )}
+
+//       {/* Reschedule Dialog */}
+//       <Dialog open={rescheduleOpen} onClose={() => setRescheduleOpen(false)}>
+//         <DialogTitle>Reschedule Appointment</DialogTitle>
+//         <DialogContent sx={{ pt: 2, minWidth: 300 }}>
+//           <LocalizationProvider dateAdapter={AdapterDateFns}>
+//             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+//               <DatePicker
+//                 label="New Date"
+//                 value={newDate}
+//                 onChange={setNewDate}
+//                 slotProps={{ textField: { fullWidth: true } }}
+//               />
+//               <TimePicker
+//                 label="New Time"
+//                 value={newTime}
+//                 onChange={setNewTime}
+//                 slotProps={{ textField: { fullWidth: true } }}
+//               />
+//             </Box>
+//           </LocalizationProvider>
+//         </DialogContent>
+//         <DialogActions>
+//           <Button onClick={() => setRescheduleOpen(false)}>Cancel</Button>
+//           <Button onClick={handleRescheduleSubmit} variant="contained" disabled={rescheduleLoading}>
+//             {rescheduleLoading ? 'Updating...' : 'Confirm'}
+//           </Button>
+//         </DialogActions>
+//       </Dialog>
+//     </Container>
+//   );
+// };
+
+// export default PatientAppointments;
+
 import {
-  CalendarToday as CalendarIcon,
-  EventBusy as CancelIcon,
-  EditCalendar as RescheduleIcon,
-  AccessTime as TimeIcon
+    AccessTime as TimeIcon,
+    CalendarToday as CalendarIcon,
+    EditCalendar as RescheduleIcon,
+    EventBusy as CancelIcon
 } from '@mui/icons-material';
 import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  CircularProgress,
-  Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Grid,
-  Paper,
-  Tab,
-  Tabs,
-  Typography
+    Alert,
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Chip,
+    CircularProgress,
+    Container,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Grid,
+    Paper,
+    Tab,
+    Tabs,
+    Typography
 } from '@mui/material';
-import { DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import React, { useEffect, useState } from 'react';
-import { bookingService } from '../../services/bookingService';
+import { AvailableDate, AvailableTimeSlot, bookingService } from '../../services/bookingService';
 import { patientService } from '../../services/patientService';
 import { useAppSelector } from '../../store/store';
 import { Appointment, AppointmentStatus } from '../../types';
 
 const PatientAppointments: React.FC = () => {
-  const { user } = useAppSelector((state) => state.auth);
-  const [tabValue, setTabValue] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const { user } = useAppSelector((state) => state.auth);
+    const [tabValue, setTabValue] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    
+    // Reschedule Dialog State
+    const [rescheduleOpen, setRescheduleOpen] = useState(false);
+    const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
+    const [newDate, setNewDate] = useState<Date | null>(null);
+    const [selectedSlot, setSelectedSlot] = useState<string>('');
+    const [rescheduleLoading, setRescheduleLoading] = useState(false);
 
-  // Reschedule Dialog State
-  const [rescheduleOpen, setRescheduleOpen] = useState(false);
-  const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
-  const [newDate, setNewDate] = useState<Date | null>(null);
-  const [newTime, setNewTime] = useState<Date | null>(null);
-  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+    // Availability State
+    const [availableDates, setAvailableDates] = useState<AvailableDate[]>([]);
+    const [datesLoading, setDatesLoading] = useState(false);
+    const [availableSlots, setAvailableSlots] = useState<AvailableTimeSlot[]>([]);
+    const [slotsLoading, setSlotsLoading] = useState(false);
 
-  useEffect(() => {
-    loadAppointments();
-  }, [user]);
-
-  const loadAppointments = async () => {
-    setLoading(true);
-    try {
-      const all = await patientService.getUpcomingAppointments(user?.id || '1');
-      const past = await patientService.getPastAppointments(user?.id || '1');
-      setAppointments([...all, ...past]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = async (id: string) => {
-    if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      try {
-        await bookingService.cancelBooking(id, 'Patient requested cancellation');
+    useEffect(() => {
         loadAppointments();
-      } catch (error) {
-        alert('Failed to cancel appointment');
-      }
-    }
-  };
+    }, [user]);
 
-  const openReschedule = (appt: Appointment) => {
-    setSelectedAppt(appt);
-    setNewDate(new Date(appt.date));
-    const [h, m] = appt.startTime.split(':').map(Number);
-    const t = new Date(); t.setHours(h, m, 0, 0);
-    setNewTime(t);
-    setRescheduleOpen(true);
-  };
+    useEffect(() => {
+        if (selectedAppt && newDate) {
+            loadSlotsForDate(selectedAppt.doctorId, newDate, selectedAppt.serviceId);
+        }
+    }, [newDate, selectedAppt]);
 
-  const handleRescheduleSubmit = async () => {
-    if (!selectedAppt || !newDate || !newTime) return;
+    const loadAppointments = async () => {
+        setLoading(true);
+        try {
+            const all = await patientService.getUpcomingAppointments(user?.id || '1');
+            const past = await patientService.getPastAppointments(user?.id || '1');
+            setAppointments([...all, ...past]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    setRescheduleLoading(true);
-    try {
-      const timeStr = format(newTime, 'HH:mm');
-      await bookingService.rescheduleAppointment(selectedAppt.id, newDate, timeStr);
-      setRescheduleOpen(false);
-      loadAppointments();
-      alert('Appointment rescheduled successfully!');
-    } catch (error) {
-      console.error(error);
-      alert('Failed to reschedule. Slot might be unavailable.');
-    } finally {
-      setRescheduleLoading(false);
-    }
-  };
+    const handleCancel = async (id: string) => {
+        if (window.confirm('Are you sure you want to cancel this appointment?')) {
+            try {
+                await bookingService.cancelBooking(id, 'Patient requested cancellation');
+                loadAppointments();
+            } catch (error) {
+                alert('Failed to cancel appointment');
+            }
+        }
+    };
 
-  const filteredAppointments = appointments.filter(a => {
-    const isUpcoming = new Date(a.date) >= new Date() && a.status !== AppointmentStatus.CANCELLED && a.status !== AppointmentStatus.COMPLETED;
-    return tabValue === 0 ? isUpcoming : !isUpcoming;
-  });
+    const openReschedule = async (appt: Appointment) => {
+        setSelectedAppt(appt);
+        setNewDate(null);
+        setSelectedSlot('');
+        setRescheduleOpen(true);
+        
+        setDatesLoading(true);
+        try {
+            const dates = await bookingService.getAvailableDates(appt.doctorId, appt.serviceId);
+            setAvailableDates(dates);
+        } catch (error) {
+            console.error("Failed to load available dates", error);
+        } finally {
+            setDatesLoading(false);
+        }
+    };
 
-  return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>My Appointments</Typography>
+    const loadSlotsForDate = async (doctorId: string, date: Date, serviceId: string) => {
+        setSlotsLoading(true);
+        setAvailableSlots([]);
+        setSelectedSlot('');
+        try {
+            const duration = 30; // Mock duration
+            const slots = await bookingService.generateAvailableTimeSlots(doctorId, date, duration);
+            setAvailableSlots(slots);
+        } catch (error) {
+            console.error("Failed to load slots", error);
+        } finally {
+            setSlotsLoading(false);
+        }
+    };
 
-      <Paper sx={{ mb: 3 }}>
-        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} indicatorColor="primary" textColor="primary" variant="fullWidth">
-          <Tab label="Upcoming" />
-          <Tab label="Past / Cancelled" />
-        </Tabs>
-      </Paper>
+    const handleRescheduleSubmit = async () => {
+        if (!selectedAppt || !newDate || !selectedSlot) return;
+        
+        setRescheduleLoading(true);
+        try {
+            await bookingService.rescheduleAppointment(selectedAppt.id, newDate, selectedSlot);
+            setRescheduleOpen(false);
+            loadAppointments();
+            alert('Appointment rescheduled successfully!');
+        } catch (error) {
+            console.error(error);
+            alert('Failed to reschedule. Slot might be unavailable.');
+        } finally {
+            setRescheduleLoading(false);
+        }
+    };
 
-      {loading ? <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} /> : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {filteredAppointments.length === 0 ? (
-            <Alert severity="info">No appointments found in this category.</Alert>
-          ) : (
-            filteredAppointments.map((appt) => (
-              <Card key={appt.id} variant="outlined" sx={{ borderColor: tabValue === 0 ? 'primary.light' : 'divider' }}>
-                <CardContent>
-                  <Grid container spacing={2} alignItems="center">
-                    <Grid size={{ xs: 12, sm: 8 }}>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                        <Chip label={appt.status} color={appt.status === 'CONFIRMED' ? 'success' : 'default'} size="small" />
-                        <Chip label={appt.metadata?.serviceName} variant="outlined" size="small" />
-                      </Box>
-                      <Typography variant="h6">Dr. {appt.metadata?.doctorName}</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1, color: 'text.secondary' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <CalendarIcon fontSize="small" />
-                          <Typography variant="body2">{format(new Date(appt.date), 'EEE, MMM d, yyyy')}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <TimeIcon fontSize="small" />
-                          <Typography variant="body2">{appt.startTime} - {appt.endTime}</Typography>
-                        </Box>
-                      </Box>
-                    </Grid>
+    const filteredAppointments = appointments.filter(a => {
+        const apptDate = new Date(a.date);
+        apptDate.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-                    {tabValue === 0 && (
-                      <Grid size={{ xs: 12, sm: 4 }} sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
-                        <Button
-                          variant="outlined"
-                          color="primary"
-                          startIcon={<RescheduleIcon />}
-                          onClick={() => openReschedule(appt)}
-                        >
-                          Reschedule
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          startIcon={<CancelIcon />}
-                          onClick={() => handleCancel(appt.id)}
-                        >
-                          Cancel
-                        </Button>
-                      </Grid>
+        const isUpcoming = apptDate >= today && 
+                           a.status !== AppointmentStatus.CANCELLED && 
+                           a.status !== AppointmentStatus.COMPLETED;
+
+        return tabValue === 0 ? isUpcoming : !isUpcoming;
+    });
+
+    const isDateAvailable = (date: Date) => {
+        return availableDates.some(d => isSameDay(d.date, date));
+    };
+
+    return (
+        <Container maxWidth="md" sx={{ py: 4 }}>
+            <Typography variant="h4" fontWeight="bold" gutterBottom>My Appointments</Typography>
+            
+            <Paper sx={{ mb: 3 }}>
+                <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} indicatorColor="primary" textColor="primary" variant="fullWidth">
+                    <Tab label="Upcoming" />
+                    <Tab label="Past / Cancelled" />
+                </Tabs>
+            </Paper>
+
+            {loading ? <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} /> : (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {filteredAppointments.length === 0 ? (
+                        <Alert severity="info">No appointments found in this category.</Alert>
+                    ) : (
+                        filteredAppointments.map((appt) => (
+                            <Card key={appt.id} variant="outlined" sx={{ borderColor: tabValue === 0 ? 'primary.light' : 'divider' }}>
+                                <CardContent>
+                                    <Grid container spacing={2} alignItems="center">
+                                        {/* FIX: Using new Grid size syntax */}
+                                        <Grid size={{ xs: 12, sm: 8 }}>
+                                            <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                                                <Chip label={appt.status} color={appt.status === 'CONFIRMED' ? 'success' : 'default'} size="small" />
+                                                <Chip label={appt.metadata?.serviceName} variant="outlined" size="small" />
+                                            </Box>
+                                            <Typography variant="h6">Dr. {appt.metadata?.doctorName}</Typography>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1, color: 'text.secondary' }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                    <CalendarIcon fontSize="small" />
+                                                    <Typography variant="body2">{format(new Date(appt.date), 'EEE, MMM d, yyyy')}</Typography>
+                                                </Box>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                    <TimeIcon fontSize="small" />
+                                                    <Typography variant="body2">{appt.startTime} - {appt.endTime}</Typography>
+                                                </Box>
+                                            </Box>
+                                        </Grid>
+                                        
+                                        {tabValue === 0 && (
+                                            /* FIX: Using new Grid size syntax */
+                                            <Grid size={{ xs: 12, sm: 4 }} sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+                                                <Button 
+                                                    variant="outlined" 
+                                                    color="primary" 
+                                                    startIcon={<RescheduleIcon />}
+                                                    onClick={() => openReschedule(appt)}
+                                                >
+                                                    Reschedule
+                                                </Button>
+                                                <Button 
+                                                    variant="outlined" 
+                                                    color="error" 
+                                                    startIcon={<CancelIcon />}
+                                                    onClick={() => handleCancel(appt.id)}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </Grid>
+                                        )}
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        ))
                     )}
-                  </Grid>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </Box>
-      )}
+                </Box>
+            )}
 
-      {/* Reschedule Dialog */}
-      <Dialog open={rescheduleOpen} onClose={() => setRescheduleOpen(false)}>
-        <DialogTitle>Reschedule Appointment</DialogTitle>
-        <DialogContent sx={{ pt: 2, minWidth: 300 }}>
-          <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-              <DatePicker
-                label="New Date"
-                value={newDate}
-                onChange={setNewDate}
-                slotProps={{ textField: { fullWidth: true } }}
-              />
-              <TimePicker
-                label="New Time"
-                value={newTime}
-                onChange={setNewTime}
-                slotProps={{ textField: { fullWidth: true } }}
-              />
-            </Box>
-          </LocalizationProvider>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRescheduleOpen(false)}>Cancel</Button>
-          <Button onClick={handleRescheduleSubmit} variant="contained" disabled={rescheduleLoading}>
-            {rescheduleLoading ? 'Updating...' : 'Confirm'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
-  );
+            {/* Reschedule Dialog */}
+            <Dialog open={rescheduleOpen} onClose={() => setRescheduleOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Reschedule Appointment</DialogTitle>
+                <DialogContent sx={{ pt: 2 }}>
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+                            {/* Date Selection */}
+                            <Box>
+                                <Typography variant="subtitle2" gutterBottom>Select New Date</Typography>
+                                <DatePicker 
+                                    value={newDate} 
+                                    onChange={setNewDate}
+                                    loading={datesLoading}
+                                    // FIX: Custom loading component inside the calendar popup
+                                    renderLoading={() => (
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '280px', width: '100%' }}>
+                                            <CircularProgress size={30} sx={{ mb: 2 }} />
+                                            <Typography variant="body2" color="text.secondary">Fetching available dates...</Typography>
+                                        </Box>
+                                    )}
+                                    shouldDisableDate={(date) => !isDateAvailable(date)}
+                                    disablePast
+                                    slotProps={{ 
+                                        textField: { 
+                                            fullWidth: true,
+                                            helperText: datesLoading ? "Please wait..." : "Only available dates are enabled" 
+                                        } 
+                                    }}
+                                />
+                            </Box>
+
+                            {/* Slot Selection */}
+                            {newDate && (
+                                <Box>
+                                    <Typography variant="subtitle2" gutterBottom>Select New Time</Typography>
+                                    {slotsLoading ? (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2 }}>
+                                            <CircularProgress size={20} />
+                                            <Typography variant="body2" color="text.secondary">Loading slots...</Typography>
+                                        </Box>
+                                    ) : availableSlots.length === 0 ? (
+                                        <Alert severity="warning">No slots available for this date.</Alert>
+                                    ) : (
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxHeight: 200, overflowY: 'auto' }}>
+                                            {availableSlots.map((slot) => (
+                                                <Chip
+                                                    key={slot.startTime}
+                                                    label={slot.startTime}
+                                                    onClick={() => setSelectedSlot(slot.startTime)}
+                                                    color={selectedSlot === slot.startTime ? 'primary' : 'default'}
+                                                    variant={selectedSlot === slot.startTime ? 'filled' : 'outlined'}
+                                                    clickable
+                                                />
+                                            ))}
+                                        </Box>
+                                    )}
+                                </Box>
+                            )}
+                        </Box>
+                    </LocalizationProvider>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setRescheduleOpen(false)}>Cancel</Button>
+                    <Button 
+                        onClick={handleRescheduleSubmit} 
+                        variant="contained" 
+                        disabled={rescheduleLoading || !newDate || !selectedSlot}
+                    >
+                        {rescheduleLoading ? 'Updating...' : 'Confirm'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Container>
+    );
 };
 
 export default PatientAppointments;

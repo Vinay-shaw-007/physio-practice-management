@@ -3,6 +3,7 @@ import { BaseEntity, Gender, UserRole } from './common';
 export interface User extends BaseEntity {
   email: string;
   name: string;
+  password?: string; // Optional for security
   role: UserRole;
   phone?: string;
   avatar?: string;
@@ -28,7 +29,7 @@ export interface Patient extends User {
 export interface Doctor extends User {
   specialization?: string;
   qualifications?: string[];
-  experience?: number;
+  yearsOfExperience?: number;
   bio?: string;
   consultationFee?: number;
 }
