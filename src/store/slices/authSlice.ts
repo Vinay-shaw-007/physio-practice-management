@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { User } from '../../types';
+import { LoginResponse } from '@/services/authService';
 
 // Keys for localStorage
 const AUTH_TOKEN_KEY = 'auth_token';
@@ -28,7 +29,7 @@ const authSlice = createSlice({
             state.loading = true;
             state.error = null;
         },
-        loginSuccess: (state, action: PayloadAction<{ user: User; token: string }>) => {
+        loginSuccess: (state, action: PayloadAction<LoginResponse>) => {
             state.user = action.payload.user;
             state.token = action.payload.token;
             state.isAuthenticated = true;

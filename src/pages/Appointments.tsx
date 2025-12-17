@@ -1,3 +1,4 @@
+import ConsultationModal, { ConsultationData } from '@/components/appointments/ConsultationModal';
 import { appointmentService } from '@/services/appointmentService';
 import {
   AccessTime,
@@ -34,8 +35,6 @@ import { useAppSelector } from '../store/store';
 import { Appointment, AppointmentStatus } from '../types';
 
 const statusColors: Record<AppointmentStatus, string> = {
-  [AppointmentStatus.NEW]: '#3b82f6',
-  [AppointmentStatus.AWAITING]: '#f59e0b',
   [AppointmentStatus.CONFIRMED]: '#10b981',
   [AppointmentStatus.RESCHEDULED]: '#8b5cf6',
   [AppointmentStatus.COMPLETED]: '#64748b',
@@ -43,8 +42,6 @@ const statusColors: Record<AppointmentStatus, string> = {
 };
 
 const statusLabels: Record<AppointmentStatus, string> = {
-  [AppointmentStatus.NEW]: 'New',
-  [AppointmentStatus.AWAITING]: 'Awaiting',
   [AppointmentStatus.CONFIRMED]: 'Confirmed',
   [AppointmentStatus.RESCHEDULED]: 'Rescheduled',
   [AppointmentStatus.COMPLETED]: 'Completed',
@@ -58,6 +55,10 @@ const Appointments: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  // New State for Modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [selectedPatientName, setSelectedPatientName] = useState('');
 
   const { user } = useAppSelector(state => state.auth);
 
@@ -69,74 +70,48 @@ const Appointments: React.FC = () => {
     filterAppointments();
   }, [activeTab, searchTerm, selectedDate, appointments]);
 
+  const handleStatusChange = async (appointmentId: string, newStatus: AppointmentStatus, patientName?: string) => {
+    // Intercept COMPLETED status
+    if (newStatus === AppointmentStatus.COMPLETED) {
+      setSelectedAppointmentId(appointmentId);
+      setSelectedPatientName(patientName || 'Patient');
+      setModalOpen(true);
+      return;
+    }
+
+    // Normal status update
+    try {
+      await appointmentService.updateAppointmentStatus(appointmentId, newStatus);
+      setAppointments(prev =>
+        prev.map(appt => (appt.id === appointmentId ? { ...appt, status: newStatus } : appt))
+      );
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  };
+
+  const handleConsultationSubmit = async (data: ConsultationData) => {
+    if (!selectedAppointmentId) return;
+
+    try {
+      // Call the specialized complete method
+      await appointmentService.completeAppointment(selectedAppointmentId, data);
+
+      // Update local UI
+      setAppointments(prev =>
+        prev.map(appt => (appt.id === selectedAppointmentId ? { ...appt, status: AppointmentStatus.COMPLETED } : appt))
+      );
+      setModalOpen(false);
+      setSelectedAppointmentId(null);
+    } catch (error) {
+      console.error("Failed to complete consultation", error);
+      alert("Failed to save consultation details.");
+    }
+  };
+
   const loadAppointments = async () => {
     try {
       setLoading(true);
-      // For demo, we'll use mock data. In production, use:
-      // const data = await appointmentService.getAppointments();
-
-      // const mockAppointments: Appointment[] = [
-      //   // {
-      //   //   id: '1',
-      //   //   patientId: '1',
-      //   //   doctorId: user?.id || '1',
-      //   //   serviceId: '1',
-      //   //   date: new Date(),
-      //   //   startTime: '10:00',
-      //   //   endTime: '10:30',
-      //   //   status: AppointmentStatus.CONFIRMED,
-      //   //   notes: 'Follow-up for knee pain',
-      //   //   symptoms: ['Knee pain', 'Swelling'],
-      //   //   paymentStatus: PaymentStatus.PAID,
-      //   //   amount: 600,
-      //   //   createdAt: new Date(),
-      //   //   updatedAt: new Date(),
-      //   //   metadata: {
-      //   //     patientName: 'John Doe',
-      //   //     serviceName: 'Clinic Consultation',
-      //   //   },
-      //   // },
-      //   // {
-      //   //   id: '2',
-      //   //   patientId: '2',
-      //   //   doctorId: user?.id || '1',
-      //   //   serviceId: '2',
-      //   //   date: new Date(),
-      //   //   startTime: '11:00',
-      //   //   endTime: '12:00',
-      //   //   status: AppointmentStatus.NEW,
-      //   //   notes: 'Initial assessment',
-      //   //   symptoms: ['Back pain'],
-      //   //   paymentStatus: PaymentStatus.PENDING,
-      //   //   amount: 1200,
-      //   //   createdAt: new Date(),
-      //   //   updatedAt: new Date(),
-      //   //   metadata: {
-      //   //     patientName: 'Jane Smith',
-      //   //     serviceName: 'Home Visit',
-      //   //   },
-      //   // },
-      //   // {
-      //   //   id: '3',
-      //   //   patientId: '3',
-      //   //   doctorId: user?.id || '1',
-      //   //   serviceId: '3',
-      //   //   date: new Date(Date.now() + 86400000),
-      //   //   startTime: '14:00',
-      //   //   endTime: '14:30',
-      //   //   status: AppointmentStatus.AWAITING,
-      //   //   notes: 'Video follow-up',
-      //   //   symptoms: ['Shoulder pain'],
-      //   //   paymentStatus: PaymentStatus.PENDING,
-      //   //   amount: 800,
-      //   //   createdAt: new Date(),
-      //   //   updatedAt: new Date(),
-      //   //   metadata: {
-      //   //     patientName: 'Robert Johnson',
-      //   //     serviceName: 'Video Consultation',
-      //   //   },
-      //   // },
-      // ];
 
       // Fetch real data from the service using the logged-in doctor's ID
       const doctorId = user?.id || '1';
@@ -146,7 +121,7 @@ const Appointments: React.FC = () => {
       });
 
       console.log(data);
-      
+
 
       setAppointments(data);
     } catch (error) {
@@ -189,16 +164,17 @@ const Appointments: React.FC = () => {
     setActiveTab(newValue);
   };
 
-  const handleStatusChange = async (appointmentId: string, newStatus: AppointmentStatus) => {
-    try {
-      // In production, use: await appointmentService.updateAppointmentStatus(appointmentId, newStatus);
-      setAppointments(prev =>
-        prev.map(appt => (appt.id === appointmentId ? { ...appt, status: newStatus } : appt))
-      );
-    } catch (error) {
-      console.error('Failed to update status:', error);
-    }
-  };
+  // Old status change handler
+  // const handleStatusChange = async (appointmentId: string, newStatus: AppointmentStatus) => {
+  //   try {
+  //     // In production, use: await appointmentService.updateAppointmentStatus(appointmentId, newStatus);
+  //     setAppointments(prev =>
+  //       prev.map(appt => (appt.id === appointmentId ? { ...appt, status: newStatus } : appt))
+  //     );
+  //   } catch (error) {
+  //     console.error('Failed to update status:', error);
+  //   }
+  // };
 
   const getAppointmentsByStatus = (status: AppointmentStatus | 'ALL') => {
     if (status === 'ALL') return appointments;
@@ -396,7 +372,11 @@ const Appointments: React.FC = () => {
                         <Select
                           value={appointment.status}
                           onChange={e =>
-                            handleStatusChange(appointment.id, e.target.value as AppointmentStatus)
+                            handleStatusChange(
+                              appointment.id,
+                              e.target.value as AppointmentStatus,
+                              appointment.metadata?.patientName
+                            )
                           }
                           size="small"
                           sx={{ minWidth: 120 }}
@@ -418,6 +398,12 @@ const Appointments: React.FC = () => {
             ))}
           </Grid>
         )}
+        <ConsultationModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onSubmit={handleConsultationSubmit}
+          patientName={selectedPatientName}
+        />
       </Box>
     </LocalizationProvider>
   );

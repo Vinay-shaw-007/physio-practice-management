@@ -9,6 +9,9 @@ export interface AvailabilitySlot extends BaseEntity {
     maxAppointmentsPerSlot?: number;
     slotDuration?: number; // in minutes
     date?: Date; // For one-time availability
+    // NEW: The services this slot is valid for. 
+    // If empty or undefined, it means "All Services"
+    serviceIds?: string[];
 }
 
 export interface Unavailability extends BaseEntity {

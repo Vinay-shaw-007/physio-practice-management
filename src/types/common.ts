@@ -5,8 +5,6 @@ export enum UserRole {
 }
 
 export enum AppointmentStatus {
-  NEW = 'NEW',
-  AWAITING = 'AWAITING',
   CONFIRMED = 'CONFIRMED',
   RESCHEDULED = 'RESCHEDULED',
   COMPLETED = 'COMPLETED',

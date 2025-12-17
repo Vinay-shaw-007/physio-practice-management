@@ -647,11 +647,13 @@
 
 // export default PatientAppointments;
 
+import { AvailableDate, AvailableTimeSlot } from '@/types/booking';
 import {
-    AccessTime as TimeIcon,
     CalendarToday as CalendarIcon,
+    EventBusy as CancelIcon,
     EditCalendar as RescheduleIcon,
-    EventBusy as CancelIcon
+    AccessTime as TimeIcon,
+    Visibility as ViewIcon
 } from '@mui/icons-material';
 import {
     Alert,
@@ -677,17 +679,22 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { format, isSameDay } from 'date-fns';
 import React, { useEffect, useState } from 'react';
-import { AvailableDate, AvailableTimeSlot, bookingService } from '../../services/bookingService';
+import { bookingService } from '../../services/bookingService';
 import { patientService } from '../../services/patientService';
 import { useAppSelector } from '../../store/store';
 import { Appointment, AppointmentStatus } from '../../types';
+import AppointmentDetailsModal from '@/components/appointments/AppointmentDetailsModal';
 
 const PatientAppointments: React.FC = () => {
     const { user } = useAppSelector((state) => state.auth);
     const [tabValue, setTabValue] = useState(0);
     const [loading, setLoading] = useState(true);
     const [appointments, setAppointments] = useState<Appointment[]>([]);
-    
+
+    // NEW: State for Details Modal
+    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+    const [viewAppointment, setViewAppointment] = useState<Appointment | null>(null);
+
     // Reschedule Dialog State
     const [rescheduleOpen, setRescheduleOpen] = useState(false);
     const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null);
@@ -710,6 +717,11 @@ const PatientAppointments: React.FC = () => {
             loadSlotsForDate(selectedAppt.doctorId, newDate, selectedAppt.serviceId);
         }
     }, [newDate, selectedAppt]);
+
+    const handleViewDetails = (appt: Appointment) => {
+        setViewAppointment(appt);
+        setDetailsModalOpen(true);
+    };
 
     const loadAppointments = async () => {
         setLoading(true);
@@ -738,7 +750,7 @@ const PatientAppointments: React.FC = () => {
         setNewDate(null);
         setSelectedSlot('');
         setRescheduleOpen(true);
-        
+
         setDatesLoading(true);
         try {
             const dates = await bookingService.getAvailableDates(appt.doctorId, appt.serviceId);
@@ -756,7 +768,8 @@ const PatientAppointments: React.FC = () => {
         setSelectedSlot('');
         try {
             const duration = 30; // Mock duration
-            const slots = await bookingService.generateAvailableTimeSlots(doctorId, date, duration);
+            // Update to pass serviceId
+            const slots = await bookingService.generateAvailableTimeSlots(doctorId, date, serviceId, duration);
             setAvailableSlots(slots);
         } catch (error) {
             console.error("Failed to load slots", error);
@@ -767,7 +780,7 @@ const PatientAppointments: React.FC = () => {
 
     const handleRescheduleSubmit = async () => {
         if (!selectedAppt || !newDate || !selectedSlot) return;
-        
+
         setRescheduleLoading(true);
         try {
             await bookingService.rescheduleAppointment(selectedAppt.id, newDate, selectedSlot);
@@ -788,9 +801,9 @@ const PatientAppointments: React.FC = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const isUpcoming = apptDate >= today && 
-                           a.status !== AppointmentStatus.CANCELLED && 
-                           a.status !== AppointmentStatus.COMPLETED;
+        const isUpcoming = apptDate >= today &&
+            a.status !== AppointmentStatus.CANCELLED &&
+            a.status !== AppointmentStatus.COMPLETED;
 
         return tabValue === 0 ? isUpcoming : !isUpcoming;
     });
@@ -802,7 +815,7 @@ const PatientAppointments: React.FC = () => {
     return (
         <Container maxWidth="md" sx={{ py: 4 }}>
             <Typography variant="h4" fontWeight="bold" gutterBottom>My Appointments</Typography>
-            
+
             <Paper sx={{ mb: 3 }}>
                 <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} indicatorColor="primary" textColor="primary" variant="fullWidth">
                     <Tab label="Upcoming" />
@@ -837,26 +850,43 @@ const PatientAppointments: React.FC = () => {
                                                 </Box>
                                             </Box>
                                         </Grid>
-                                        
+
                                         {tabValue === 0 && (
                                             /* FIX: Using new Grid size syntax */
                                             <Grid size={{ xs: 12, sm: 4 }} sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
-                                                <Button 
-                                                    variant="outlined" 
-                                                    color="primary" 
+                                                <Button
+                                                    variant="outlined"
+                                                    color="primary"
                                                     startIcon={<RescheduleIcon />}
                                                     onClick={() => openReschedule(appt)}
                                                 >
                                                     Reschedule
                                                 </Button>
-                                                <Button 
-                                                    variant="outlined" 
-                                                    color="error" 
+                                                <Button
+                                                    variant="outlined"
+                                                    color="error"
                                                     startIcon={<CancelIcon />}
                                                     onClick={() => handleCancel(appt.id)}
                                                 >
                                                     Cancel
                                                 </Button>
+                                            </Grid>
+                                        )}
+
+                                        {/* NEW: Buttons for Past/Completed Tab */}
+                                        {tabValue === 1 && (
+                                            <Grid size={{ xs: 12, sm: 4 }} sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
+                                                {appt.status === AppointmentStatus.COMPLETED && (
+                                                    <Button
+                                                        variant="contained"
+                                                        size="small"
+                                                        startIcon={<ViewIcon />}
+                                                        onClick={() => handleViewDetails(appt)}
+                                                    >
+                                                        View Summary
+                                                    </Button>
+                                                )}
+                                                {/* You can add a "Book Again" button here too if you want */}
                                             </Grid>
                                         )}
                                     </Grid>
@@ -876,8 +906,8 @@ const PatientAppointments: React.FC = () => {
                             {/* Date Selection */}
                             <Box>
                                 <Typography variant="subtitle2" gutterBottom>Select New Date</Typography>
-                                <DatePicker 
-                                    value={newDate} 
+                                <DatePicker
+                                    value={newDate}
                                     onChange={setNewDate}
                                     loading={datesLoading}
                                     // FIX: Custom loading component inside the calendar popup
@@ -889,11 +919,11 @@ const PatientAppointments: React.FC = () => {
                                     )}
                                     shouldDisableDate={(date) => !isDateAvailable(date)}
                                     disablePast
-                                    slotProps={{ 
-                                        textField: { 
+                                    slotProps={{
+                                        textField: {
                                             fullWidth: true,
-                                            helperText: datesLoading ? "Please wait..." : "Only available dates are enabled" 
-                                        } 
+                                            helperText: datesLoading ? "Please wait..." : "Only available dates are enabled"
+                                        }
                                     }}
                                 />
                             </Box>
@@ -930,15 +960,21 @@ const PatientAppointments: React.FC = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setRescheduleOpen(false)}>Cancel</Button>
-                    <Button 
-                        onClick={handleRescheduleSubmit} 
-                        variant="contained" 
+                    <Button
+                        onClick={handleRescheduleSubmit}
+                        variant="contained"
                         disabled={rescheduleLoading || !newDate || !selectedSlot}
                     >
                         {rescheduleLoading ? 'Updating...' : 'Confirm'}
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <AppointmentDetailsModal
+                open={detailsModalOpen}
+                onClose={() => setDetailsModalOpen(false)}
+                appointment={viewAppointment}
+            />
         </Container>
     );
 };

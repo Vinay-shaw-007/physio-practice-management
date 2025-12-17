@@ -511,6 +511,15 @@
 // export default BookAppointment;
 
 import {
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
+  CalendarMonth as CalendarIcon,
+  CheckCircle as CheckCircleIcon,
+  MedicalServices as MedicalServicesIcon,
+  Schedule as ScheduleIcon
+} from '@mui/icons-material';
+import {
+  Alert,
   Box,
   Button,
   CircularProgress,
@@ -521,37 +530,142 @@ import {
   Stepper,
   Typography
 } from '@mui/material';
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Added missing import
 import ConfirmationStep from '../components/booking/ConfirmationStep';
 import DateSelectionStep from '../components/booking/DateSelectionStep';
 import ServiceSelectionStep from '../components/booking/ServiceSelectionStep';
 import TimeSlotStep from '../components/booking/TimeSlotStep';
 import { bookingService } from '../services/bookingService';
+import { serviceService } from '../services/serviceConfigurationService';
 import { useAppSelector } from '../store/store';
-import { Service } from '../types';
+import { Service, UserRole } from '../types';
+import { mockStorage } from '../utils/mockStorage'; // Import storage to find doctor
+import { AvailableDate, AvailableTimeSlot } from '@/types/booking';
 
-const steps = ['Select Service', 'Choose Date', 'Select Time', 'Confirmation'];
+const steps = ['Select Service', 'Choose Date', 'Select Time', 'Confirm Booking'];
 
 const BookAppointment: React.FC = () => {
-  const navigate = useNavigate();
   const { user } = useAppSelector((state) => state.auth);
-
+  const navigate = useNavigate(); // Added hook
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Booking State
+  // Booking state
+  const [doctorId, setDoctorId] = useState<string>(''); // NEW: Dynamic Doctor ID
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [availableDates, setAvailableDates] = useState<AvailableDate[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<AvailableTimeSlot[]>([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [patientNotes, setPatientNotes] = useState('');
 
-  // Mock Doctor ID (In a real app, you'd select a doctor first)
-  const DOCTOR_ID = '1';
+  // Load available services
+  const [services, setServices] = useState<Service[]>([]);
+  const [loadingServices, setLoadingServices] = useState(true);
 
-  const handleNext = async () => {
+  // 1. First, find a valid Doctor ID on mount
+  useEffect(() => {
+    const findDoctor = () => {
+      const users = mockStorage.getUsers();
+      // Find the first user who is a DOCTOR
+      const doc = users.find(u => u.role === UserRole.DOCTOR);
+      if (doc) {
+        setDoctorId(doc.id);
+        console.log("Found Doctor:", doc.name, "ID:", doc.id);
+      } else {
+        // Fallback if no doctor exists yet
+        console.warn("No doctor found in system. Using fallback '1'");
+        setDoctorId('1');
+      }
+    };
+    findDoctor();
+    loadServices();
+  }, []);
+
+  // 2. Load Services
+  const loadServices = async () => {
+    try {
+      setLoadingServices(true);
+      const activeServices = await serviceService.getServices({ isActive: true });
+      setServices(activeServices);
+    } catch (error) {
+      console.error('Failed to load services:', error);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  // 3. Load Dates when Service is selected (and we have a doctor ID)
+  useEffect(() => {
+    if (selectedService && doctorId && activeStep >= 1) {
+      loadAvailableDates();
+    }
+  }, [selectedService, doctorId, activeStep]);
+
+  // 4. Load Time Slots
+  useEffect(() => {
+    if (selectedDate && selectedService && doctorId && activeStep >= 2) {
+      loadAvailableTimeSlots();
+    }
+  }, [selectedDate, activeStep]);
+
+  const loadAvailableDates = async () => {
+    if (!selectedService || !user || !doctorId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      // Pass the dynamic doctorId here
+      const dates = await bookingService.getAvailableDates(doctorId, selectedService.id);
+      setAvailableDates(dates);
+    } catch (error: any) {
+      setError(error.message || 'Failed to load available dates');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAvailableTimeSlots = async () => {
+    if (!selectedService || !selectedDate || !user || !doctorId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      // Pass the dynamic doctorId and ServiceId here
+      const timeSlots = await bookingService.generateAvailableTimeSlots(
+        doctorId,
+        selectedDate,
+        selectedService.id, // Ensure serviceId is passed
+        selectedService.duration
+      );
+      setAvailableTimeSlots(timeSlots);
+    } catch (error: any) {
+      setError(error.message || 'Failed to load available time slots');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNext = () => {
+    if (activeStep === 0 && !selectedService) {
+      setError('Please select a service to continue');
+      return;
+    }
+    if (activeStep === 1 && !selectedDate) {
+      setError('Please select a date to continue');
+      return;
+    }
+    if (activeStep === 2 && !selectedTimeSlot) {
+      setError('Please select a time slot to continue');
+      return;
+    }
+
+    setError(null);
+
     if (activeStep === steps.length - 1) {
-      await handleSubmit();
+      handleSubmitBooking();
     } else {
       setActiveStep((prev) => prev + 1);
     }
@@ -559,108 +673,173 @@ const BookAppointment: React.FC = () => {
 
   const handleBack = () => {
     setActiveStep((prev) => prev - 1);
+    setError(null);
   };
 
-  const handleSubmit = async () => {
-    if (!selectedService || !selectedDate || !selectedTimeSlot || !user?.id) return;
+  const handleSubmitBooking = async () => {
+    if (!selectedService || !selectedDate || !selectedTimeSlot || !user || !doctorId) return;
 
     try {
       setLoading(true);
+      setError(null);
+
       await bookingService.createBooking({
         serviceId: selectedService.id,
         date: selectedDate,
         timeSlot: selectedTimeSlot,
+        patientNotes,
         patientId: user.id,
-        doctorId: DOCTOR_ID,
-        patientNotes: patientNotes
+        doctorId: doctorId, // Use the dynamic ID
       });
 
-      // Success! Redirect to appointments
-      navigate('/patient/appointments');
-    } catch (error) {
-      console.error('Booking failed:', error);
-      alert('Failed to book appointment. The slot might have been taken.');
-      // Optional: Go back to time slot step to pick another
-      setActiveStep(2);
+      // Success!
+      alert('Booking successful! Redirecting to dashboard...');
+      navigate('/patient/dashboard'); // Use navigate instead of just error message
+
+    } catch (error: any) {
+      setError(error.message || 'Failed to book appointment');
     } finally {
       setLoading(false);
     }
   };
 
-  const isStepValid = () => {
-    switch (activeStep) {
-      case 0: return !!selectedService;
-      case 1: return !!selectedDate;
-      case 2: return !!selectedTimeSlot;
-      case 3: return true;
-      default: return false;
+  // ... (Step Handlers: handleServiceSelect, etc. remain the same) ...
+  const handleServiceSelect = (service: Service) => {
+    setSelectedService(service);
+    setSelectedDate(null); // Reset downstream selections
+    setSelectedTimeSlot(null);
+    setError(null);
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    setSelectedTimeSlot(null);
+    setError(null);
+  };
+
+  const handleTimeSlotSelect = (timeSlot: string) => {
+    setSelectedTimeSlot(timeSlot);
+    setError(null);
+  };
+
+  // ... (Render Helpers: renderStepContent, getStepIcon, etc. remain the same) ...
+  const renderStepContent = (step: number) => {
+    switch (step) {
+      case 0:
+        return (
+          <ServiceSelectionStep
+            services={services}
+            selectedService={selectedService}
+            onSelectService={handleServiceSelect}
+            loading={loadingServices}
+          />
+        );
+      case 1:
+        return (
+          <DateSelectionStep
+            doctorId={doctorId} // Pass correct ID
+            serviceId={selectedService?.id || ''}
+            selectedDate={selectedDate}
+            onSelect={handleDateSelect}
+          />
+        );
+      case 2:
+        return (
+          <TimeSlotStep
+            doctorId={doctorId} // Pass correct ID
+            date={selectedDate!}
+            serviceDuration={selectedService?.duration || 30}
+            selectedTime={selectedTimeSlot || ''}
+            onSelect={handleTimeSlotSelect}
+            serviceId={selectedService?.id || ''}
+          />
+        );
+      case 3:
+        return (
+          <ConfirmationStep
+            selectedService={selectedService}
+            selectedDate={selectedDate}
+            selectedTimeSlot={selectedTimeSlot}
+            patientNotes={patientNotes}
+            onNotesChange={setPatientNotes}
+            loading={loading}
+          />
+        );
+      default:
+        return <Typography>Unknown step</Typography>;
     }
   };
 
-  return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" fontWeight="bold" align="center" gutterBottom>
-        Book an Appointment
-      </Typography>
+  // ... (Icon helpers remain the same) ...
+  const getStepIcon = (step: number) => {
+    switch (step) {
+      case 0: return <MedicalServicesIcon />;
+      case 1: return <CalendarIcon />;
+      case 2: return <ScheduleIcon />;
+      case 3: return <CheckCircleIcon />;
+      default: return null;
+    }
+  };
 
-      <Paper sx={{ p: 4, mt: 4, borderRadius: 2 }}>
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-          {steps.map((label) => (
+  if (loadingServices) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Header */}
+      <Box sx={{ mb: 6, textAlign: 'center' }}>
+        <Typography variant="h3" component="h1" gutterBottom fontWeight="bold">
+          Book an Appointment
+        </Typography>
+        <Typography variant="h6" color="text.secondary">
+          Schedule your consultation with {services.length > 0 ? "Dr. Lakhi Shaw" : "our doctors"}
+        </Typography>
+      </Box>
+
+      {/* Stepper */}
+      <Paper sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+        <Stepper activeStep={activeStep} alternativeLabel>
+          {steps.map((label, index) => (
             <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+              <StepLabel StepIconComponent={() => (
+                <Box sx={{
+                  width: 40, height: 40, borderRadius: '50%',
+                  bgcolor: activeStep >= index ? 'primary.main' : 'grey.200',
+                  color: activeStep >= index ? 'white' : 'grey.500',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+                }}>
+                  {activeStep > index ? <CheckCircleIcon /> : getStepIcon(index)}
+                </Box>
+              )}>
+                {label}
+              </StepLabel>
             </Step>
           ))}
         </Stepper>
+      </Paper>
 
-        <Box sx={{ minHeight: 300 }}>
-          {activeStep === 0 && (
-            <ServiceSelectionStep
-              selectedService={selectedService}
-              onSelect={setSelectedService}
-            />
-          )}
-          {activeStep === 1 && selectedService && (
-            <DateSelectionStep
-              doctorId={DOCTOR_ID}
-              serviceId={selectedService.id}
-              selectedDate={selectedDate}
-              onSelect={setSelectedDate}
-            />
-          )}
-          {activeStep === 2 && selectedService && selectedDate && (
-            <TimeSlotStep
-              doctorId={DOCTOR_ID}
-              date={selectedDate}
-              serviceDuration={selectedService.duration}
-              selectedTime={selectedTimeSlot}
-              onSelect={setSelectedTimeSlot}
-            />
-          )}
-          {activeStep === 3 && selectedService && selectedDate && (
-            <ConfirmationStep
-              service={selectedService}
-              date={selectedDate}
-              time={selectedTimeSlot}
-              notes={patientNotes}
-              onNotesChange={setPatientNotes}
-            />
-          )}
-        </Box>
+      {/* Content */}
+      <Paper sx={{ p: 4, borderRadius: 3, mb: 4 }}>
+        {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4, gap: 2 }}>
-          <Button
-            disabled={activeStep === 0 || loading}
-            onClick={handleBack}
-          >
+        {renderStepContent(activeStep)}
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+          <Button disabled={activeStep === 0 || loading} onClick={handleBack} startIcon={<ArrowBackIcon />}>
             Back
           </Button>
           <Button
             variant="contained"
             onClick={handleNext}
-            disabled={!isStepValid() || loading}
-            startIcon={loading && <CircularProgress size={20} color="inherit" />}
+            disabled={loading}
+            endIcon={activeStep === steps.length - 1 ? null : <ArrowForwardIcon />}
           >
-            {activeStep === steps.length - 1 ? (loading ? 'Booking...' : 'Confirm Booking') : 'Next'}
+            {loading ? <CircularProgress size={24} color="inherit" /> : activeStep === steps.length - 1 ? 'Confirm & Book' : 'Continue'}
           </Button>
         </Box>
       </Paper>

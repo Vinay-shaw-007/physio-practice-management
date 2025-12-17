@@ -12,10 +12,17 @@ export interface Appointment extends BaseEntity {
   symptoms?: string[];
   paymentStatus: PaymentStatus;
   amount: number;
-  metadata?: {
-    serviceName?: string;
-    patientName?: string;
-    doctorName?: string;
-    serviceType?: ServiceType;
-  };
+  metadata?: AppointmentMetadata;
+}
+
+export interface AppointmentMetadata {
+  serviceName?: string;
+  patientName?: string;
+  doctorName?: string;
+  serviceType?: ServiceType;
+  diagnosis?: string;
+  treatment?: string;
+  prescription?: string;
+  clinicalNotes?: string;
+  completedAt?: Date;
 }
