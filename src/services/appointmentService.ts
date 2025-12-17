@@ -1,6 +1,7 @@
 import { ConsultationData } from '@/components/appointments/ConsultationModal';
-import { Appointment, AppointmentMetadata, AppointmentStatus } from '../types';
+import { Appointment, AppointmentStatus } from '../types';
 import { mockStorage } from '../utils/mockStorage';
+import { invoiceService } from './invoiceService';
 
 class AppointmentService {
   // private appointments: Appointment[] = [...mockAppointments];
@@ -121,27 +122,33 @@ class AppointmentService {
     return upcoming;
   }
 
-  // Handle Consultation Completion
+  // NEW: Handle Consultation Completion & Invoice Generation
   async completeAppointment(id: string, data: ConsultationData): Promise<Appointment> {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     const appointment = await this.getAppointmentById(id);
 
     // Merge consultation data into metadata
-    // In a real app, you would create a separate "MedicalRecord" entry here
-    const updatedMetadata: AppointmentMetadata = {
+    const updatedMetadata = {
       ...appointment.metadata,
       diagnosis: data.diagnosis,
       treatment: data.treatment,
       prescription: data.prescription,
       clinicalNotes: data.clinicalNotes,
-      completedAt: new Date(),
+      completedAt: new Date()
     };
 
-    return this.updateAppointment(id, {
+    // 1. Update the appointment status
+    const updatedAppointment = await this.updateAppointment(id, {
       status: AppointmentStatus.COMPLETED,
       metadata: updatedMetadata
     });
+
+    // 2. TRIGGER INVOICE GENERATION
+    // This ensures the bill is ready immediately after the doctor clicks "Complete"
+    await invoiceService.generateFromAppointment(updatedAppointment);
+
+    return updatedAppointment;
   }
 }
 

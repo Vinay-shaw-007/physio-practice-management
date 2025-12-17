@@ -1,141 +1,142 @@
-import { Invoice } from '@/types/booking';
 import {
-    CloudDownload as DownloadIcon,
-    Receipt as ReceiptIcon
+    Description as InvoiceIcon,
+    Visibility as ViewIcon
 } from '@mui/icons-material';
 import {
+    Alert,
     Box,
     Button,
     Card,
+    CardContent,
     Chip,
+    CircularProgress,
     Container,
-    Paper,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Typography,
-    useTheme
+    Dialog,
+    Grid,
+    Typography
 } from '@mui/material';
 import { format } from 'date-fns';
 import React, { useEffect, useState } from 'react';
-import { patientService } from '../../services/patientService';
+import InvoiceDocument from '../../components/billing/InvoiceDocument';
+import { invoiceService } from '../../services/invoiceService';
 import { useAppSelector } from '../../store/store';
-
-
+import { Invoice, InvoiceStatus } from '../../types/invoice';
 
 const PatientBilling: React.FC = () => {
-    const theme = useTheme();
     const { user } = useAppSelector((state) => state.auth);
     const [loading, setLoading] = useState(true);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
     useEffect(() => {
-        loadInvoices();
-    }, []);
+        loadData();
+    }, [user]);
 
-    const loadInvoices = async () => {
+    const loadData = async () => {
+        if (!user) return;
+        setLoading(true);
         try {
-            const data = await patientService.getInvoices(user?.id || '1');
+            // For Demo: Generate a fake invoice if none exists
+            // In real app, this happens after appointment completion
+            let data = await invoiceService.getAllInvoices(user.id);
+            if (data.length === 0) {
+                // Create a dummy one for visualization
+                // const dummy = await invoiceService.generateFromAppointment({
+                //     id: '1',
+                //     patientId: user.id,
+                //     doctorId: '1',
+                //     amount: 1500,
+                //     date: new Date(),
+                //     // ... other appointment fields
+                // } as any);
+                // data = [dummy];
+            }
             setInvoices(data);
+        } catch (error) {
+            console.error(error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDownload = (id: string) => {
-        alert(`Downloading Invoice ${id}...`);
-    };
-
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status: InvoiceStatus) => {
         switch (status) {
-            case 'PAID': return 'success';
-            case 'PENDING': return 'warning';
-            case 'OVERDUE': return 'error';
+            case InvoiceStatus.PAID: return 'success';
+            case InvoiceStatus.OVERDUE: return 'error';
+            case InvoiceStatus.ISSUED: return 'primary';
             default: return 'default';
         }
     };
 
     return (
         <Container maxWidth="lg" sx={{ py: 4 }}>
-            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
-                    <Typography variant="h4" fontWeight="bold" gutterBottom>
-                        Billing & Invoices
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                        Manage your payments and download invoices.
-                    </Typography>
-                </Box>
-                <Card sx={{ p: 2, bgcolor: 'primary.main', color: 'white', minWidth: 200 }}>
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>Total Outstanding</Typography>
-                    <Typography variant="h4" fontWeight="bold">
-                        ${invoices.filter(i => i.status === 'PENDING').reduce((acc, curr) => acc + curr.amount, 0)}
-                    </Typography>
-                </Card>
-            </Box>
+            <Typography variant="h4" fontWeight="bold" gutterBottom>
+                Billing & Invoices
+            </Typography>
 
-            <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-                <Table>
-                    <TableHead sx={{ bgcolor: 'grey.50' }}>
-                        <TableRow>
-                            <TableCell>Invoice Details</TableCell>
-                            <TableCell>Service</TableCell>
-                            <TableCell>Date</TableCell>
-                            <TableCell>Amount</TableCell>
-                            <TableCell>Status</TableCell>
-                            <TableCell align="right">Actions</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={6} align="center" sx={{ py: 3 }}>Loading...</TableCell>
-                            </TableRow>
-                        ) : invoices.map((invoice) => (
-                            <TableRow key={invoice.id} hover>
-                                <TableCell>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        <ReceiptIcon color="action" />
-                                        <Box>
-                                            <Typography variant="subtitle2" fontWeight="bold">
+            {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                    <CircularProgress />
+                </Box>
+            ) : invoices.length === 0 ? (
+                <Alert severity="info">No invoices found. Invoices are generated after appointment completion.</Alert>
+            ) : (
+                <Grid container spacing={3}>
+                    {invoices.map((invoice) => (
+                        <Grid size={{ xs: 12, md: 6, lg: 4 }} key={invoice.id}>
+                            <Card variant="outlined" sx={{ '&:hover': { boxShadow: 3 } }}>
+                                <CardContent>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <InvoiceIcon color="primary" />
+                                            <Typography variant="h6" fontWeight="bold">
                                                 {invoice.invoiceNumber}
                                             </Typography>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {invoice.paymentMethod}
-                                            </Typography>
                                         </Box>
+                                        <Chip
+                                            label={invoice.status}
+                                            color={getStatusColor(invoice.status)}
+                                            size="small"
+                                        />
                                     </Box>
-                                </TableCell>
-                                <TableCell>{invoice.service}</TableCell>
-                                <TableCell>{format(new Date(invoice.date), 'MMM d, yyyy')}</TableCell>
-                                <TableCell>
-                                    <Typography fontWeight="bold">${invoice.amount}</Typography>
-                                </TableCell>
-                                <TableCell>
-                                    <Chip
-                                        label={invoice.status}
-                                        size="small"
-                                        color={getStatusColor(invoice.status) as any}
-                                        variant="outlined"
-                                    />
-                                </TableCell>
-                                <TableCell align="right">
+
+                                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                                        Date: {format(new Date(invoice.date), 'MMM d, yyyy')}
+                                    </Typography>
+
+                                    <Box sx={{ my: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                                        <Typography variant="caption" color="text.secondary">Total Amount</Typography>
+                                        <Typography variant="h5" fontWeight="bold">
+                                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: invoice.currency }).format(invoice.totalAmount)}
+                                        </Typography>
+                                    </Box>
+
                                     <Button
-                                        startIcon={<DownloadIcon />}
-                                        size="small"
-                                        onClick={() => handleDownload(invoice.id)}
+                                        fullWidth
+                                        variant="outlined"
+                                        startIcon={<ViewIcon />}
+                                        onClick={() => setSelectedInvoice(invoice)}
                                     >
-                                        Download
+                                        View Invoice
                                     </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
+            )}
+
+            {/* Invoice Viewer Modal */}
+            <Dialog
+                open={!!selectedInvoice}
+                onClose={() => setSelectedInvoice(null)}
+                maxWidth="md"
+                fullWidth
+            >
+                <Box sx={{ maxHeight: '90vh', overflow: 'auto' }}>
+                    {selectedInvoice && <InvoiceDocument invoice={selectedInvoice} />}
+                </Box>
+            </Dialog>
         </Container>
     );
 };

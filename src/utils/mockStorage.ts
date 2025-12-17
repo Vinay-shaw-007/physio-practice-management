@@ -1,3 +1,4 @@
+import { Invoice } from '@/types/invoice';
 import { Appointment, AvailabilitySlot, Service, Unavailability, User } from '../types';
 
 // Storage Keys
@@ -8,6 +9,7 @@ const STORAGE_KEYS = {
     APPOINTMENTS: 'physiopro_appointments',
     USERS: 'physiopro_users', // Main Users Table
     MEDICAL_RECORDS: 'physiopro_medical_records',
+    INVOICES: 'physiopro_invoices',
 };
 
 // Helper: Handle Date serialization
@@ -110,6 +112,22 @@ class MockStorage {
 
     saveMedicalRecords(records: any[]) {
         this.setItem(STORAGE_KEYS.MEDICAL_RECORDS, records);
+    }
+
+    // --- Invoices ---
+    getInvoices(): Invoice[] {
+        return this.getItem<Invoice[]>(STORAGE_KEYS.INVOICES, []);
+    }
+
+    saveInvoice(invoice: Invoice) {
+        const invoices = this.getInvoices();
+        const index = invoices.findIndex(i => i.id === invoice.id);
+        if (index >= 0) {
+            invoices[index] = invoice;
+        } else {
+            invoices.push(invoice);
+        }
+        this.setItem(STORAGE_KEYS.INVOICES, invoices);
     }
 
     clearAll() {

@@ -408,16 +408,19 @@
 
 
 
+import { AvailableDate, AvailableTimeSlot, BookingData } from '@/types/booking';
 import { addDays, eachDayOfInterval, endOfDay, format, isWithinInterval, startOfDay } from 'date-fns';
 import { Appointment, AppointmentStatus, PaymentStatus } from '../types';
 import { mockStorage } from '../utils/mockStorage';
 import { appointmentService } from './appointmentService';
 import { availabilityService } from './availabilityService';
+import { doctorService } from './doctorService';
 import { serviceService } from './serviceConfigurationService';
-import { AvailableDate, AvailableTimeSlot, BookingData } from '@/types/booking';
+import { PaymentMethod } from '@/types/invoice';
+import { invoiceService } from './invoiceService';
 
 class BookingService {
-    
+
     // BUSINESS LOGIC: Get only dates that actually have slots available FOR THE SPECIFIC SERVICE
     async getAvailableDates(doctorId: string, serviceId: string): Promise<AvailableDate[]> {
         const service = await serviceService.getServiceById(serviceId);
@@ -434,7 +437,7 @@ class BookingService {
         const days = eachDayOfInterval({ start: today, end: endDate });
 
         // Optimization: Fetch all confirmed appointments once
-        const allAppointments = mockStorage.getAppointments().filter(a => 
+        const allAppointments = mockStorage.getAppointments().filter(a =>
             a.doctorId === doctorId && a.status !== AppointmentStatus.CANCELLED
         );
 
@@ -449,10 +452,10 @@ class BookingService {
 
             // Logic 2: Check Weekly Schedule & Service Match
             const dayOfWeek = day.getDay();
-            
+
             // FIX: Filter slots that are for this day AND support this service
-            const daySlots = availabilitySlots.filter(s => 
-                s.dayOfWeek === dayOfWeek && 
+            const daySlots = availabilitySlots.filter(s =>
+                s.dayOfWeek === dayOfWeek &&
                 s.isRecurring &&
                 // If serviceIds is empty/undefined, it means ALL. If not, check if serviceId is included.
                 (!s.serviceIds || s.serviceIds.length === 0 || s.serviceIds.includes(serviceId))
@@ -463,7 +466,7 @@ class BookingService {
             // Logic 3: Calculate actual free slots (Collision detection)
             // Note: We pass serviceId now to double-check
             const slots = await this.generateAvailableTimeSlots(doctorId, day, serviceId, service.duration, allAppointments);
-            
+
             if (slots.length > 0) {
                 availableDates.push({
                     date: day,
@@ -478,24 +481,24 @@ class BookingService {
 
     // BUSINESS LOGIC: Generate specific time slots for a day
     async generateAvailableTimeSlots(
-        doctorId: string, 
-        date: Date, 
+        doctorId: string,
+        date: Date,
         serviceId: string, // NEW PARAM
         serviceDuration: number,
         preFetchedAppointments?: Appointment[]
     ): Promise<AvailableTimeSlot[]> {
-        
+
         const dayOfWeek = date.getDay();
         const availabilitySlots = await availabilityService.getAvailabilitySlots(doctorId);
-        
+
         // FIX: Filter slots by Service ID
-        const daySlots = availabilitySlots.filter(s => 
-            s.dayOfWeek === dayOfWeek && 
+        const daySlots = availabilitySlots.filter(s =>
+            s.dayOfWeek === dayOfWeek &&
             s.isRecurring &&
             (!s.serviceIds || s.serviceIds.length === 0 || s.serviceIds.includes(serviceId))
         );
-        
-        const appointments = preFetchedAppointments || mockStorage.getAppointments().filter(a => 
+
+        const appointments = preFetchedAppointments || mockStorage.getAppointments().filter(a =>
             a.doctorId === doctorId && a.status !== AppointmentStatus.CANCELLED
         );
 
@@ -503,9 +506,9 @@ class BookingService {
 
         for (const daySlot of daySlots) {
             const slots = this.generateSlotsFromRange(
-                daySlot.startTime, 
-                daySlot.endTime, 
-                serviceDuration, 
+                daySlot.startTime,
+                daySlot.endTime,
+                serviceDuration,
                 daySlot.slotDuration || 30
             );
 
@@ -540,22 +543,22 @@ class BookingService {
 
     private isSlotBooked(date: Date, startTime: string, appointments: Appointment[]): boolean {
         const dateStr = format(date, 'yyyy-MM-dd');
-        return appointments.some(a => 
+        return appointments.some(a =>
             format(new Date(a.date), 'yyyy-MM-dd') === dateStr && a.startTime === startTime
         );
     }
 
-    private generateSlotsFromRange(start: string, end: string, duration: number, interval: number): {startTime: string, endTime: string}[] {
+    private generateSlotsFromRange(start: string, end: string, duration: number, interval: number): { startTime: string, endTime: string }[] {
         const slots = [];
         const [startH, startM] = start.split(':').map(Number);
         const [endH, endM] = end.split(':').map(Number);
-        
+
         let currH = startH, currM = startM;
-        
+
         while (currH < endH || (currH === endH && currM < endM)) {
-            const slotStart = `${currH.toString().padStart(2,'0')}:${currM.toString().padStart(2,'0')}`;
+            const slotStart = `${currH.toString().padStart(2, '0')}:${currM.toString().padStart(2, '0')}`;
             const [endSlotH, endSlotM] = this.addMinutesToTime(currH, currM, duration);
-            const slotEnd = `${endSlotH.toString().padStart(2,'0')}:${endSlotM.toString().padStart(2,'0')}`;
+            const slotEnd = `${endSlotH.toString().padStart(2, '0')}:${endSlotM.toString().padStart(2, '0')}`;
 
             if (endSlotH < endH || (endSlotH === endH && endSlotM <= endM)) {
                 slots.push({ startTime: slotStart, endTime: slotEnd });
@@ -578,7 +581,7 @@ class BookingService {
             const [h, m] = t.split(':').map(Number);
             const ampm = h >= 12 ? 'PM' : 'AM';
             const dh = h % 12 || 12;
-            return `${dh}:${m.toString().padStart(2,'0')} ${ampm}`;
+            return `${dh}:${m.toString().padStart(2, '0')} ${ampm}`;
         };
         return `${fmt(start)} - ${fmt(end)}`;
     }
@@ -586,7 +589,9 @@ class BookingService {
     // BUSINESS LOGIC: Perform Booking Transaction
     async createBooking(data: BookingData): Promise<Appointment> {
         const service = await serviceService.getServiceById(data.serviceId);
-        
+        const doctor = await doctorService.getDoctorProfile(data.doctorId);
+        const patient = mockStorage.getUserById(data.patientId);
+
         // Re-validate availability passing serviceId
         const slots = await this.generateAvailableTimeSlots(data.doctorId, data.date, data.serviceId, service.duration);
         if (!slots.some(s => s.startTime === data.timeSlot)) {
@@ -595,9 +600,9 @@ class BookingService {
 
         const [endH, endM] = data.timeSlot.split(':').map(Number);
         const [finalEndH, finalEndM] = this.addMinutesToTime(endH, endM, service.duration);
-        const endTime = `${finalEndH.toString().padStart(2,'0')}:${finalEndM.toString().padStart(2,'0')}`;
+        const endTime = `${finalEndH.toString().padStart(2, '0')}:${finalEndM.toString().padStart(2, '0')}`;
 
-        return appointmentService.createAppointment({
+        const newAppointment = await appointmentService.createAppointment({
             patientId: data.patientId,
             doctorId: data.doctorId,
             serviceId: data.serviceId,
@@ -607,19 +612,27 @@ class BookingService {
             status: AppointmentStatus.CONFIRMED,
             notes: data.patientNotes,
             amount: service.price,
-            paymentStatus: PaymentStatus.PENDING,
+            paymentStatus: PaymentStatus.PAID,
             metadata: {
                 serviceName: service.name,
                 serviceType: service.type,
-                patientName: 'Current User', 
-                doctorName: 'Dr. Sarah Johnson' 
+                patientName: patient?.name ?? 'Current User',
+                doctorName: doctor.name ?? 'Dr. Sarah Johnson'
             }
         });
+
+        // This creates the "Receipt" that the patient can download right away
+        await invoiceService.generateFromAppointment(
+            newAppointment,
+            PaymentMethod.UPI // Default or pass from UI if you have payment selection
+        );
+
+        return newAppointment;
     }
 
     async rescheduleAppointment(appointmentId: string, newDate: Date, newTime: string, newServiceId?: string): Promise<Appointment> {
         const appointment = await appointmentService.getAppointmentById(appointmentId);
-        
+
         // Use existing service ID if not changing
         const serviceId = newServiceId || appointment.serviceId;
         const service = await serviceService.getServiceById(serviceId);
@@ -631,7 +644,7 @@ class BookingService {
 
         const [newStartH, newStartM] = newTime.split(':').map(Number);
         const [newEndH, newEndM] = this.addMinutesToTime(newStartH, newStartM, duration);
-        const newEndTime = `${newEndH.toString().padStart(2,'0')}:${newEndM.toString().padStart(2,'0')}`;
+        const newEndTime = `${newEndH.toString().padStart(2, '0')}:${newEndM.toString().padStart(2, '0')}`;
 
         return appointmentService.updateAppointment(appointmentId, {
             date: newDate,

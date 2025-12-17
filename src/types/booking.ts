@@ -1,5 +1,4 @@
 import { Appointment } from "./appointments";
-import { ServiceType } from "./common";
 
 export interface AvailableDate {
     date: Date;
@@ -29,15 +28,4 @@ export interface BookingResponse {
     appointmentId: string;
     message: string;
     appointment: Appointment;
-}
-
-export interface Invoice {
-    id: string;
-    date: Date;
-    amount: number;
-    status: string;
-    appointmentId: string;
-    service: ServiceType;
-    invoiceNumber: string;
-    paymentMethod: string;
 }
