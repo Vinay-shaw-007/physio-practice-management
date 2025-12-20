@@ -1,16 +1,7 @@
 import { Appointment } from '../types';
 import { Invoice, InvoiceItem, InvoiceStatus, PaymentMethod } from '../types/invoice';
 import { mockStorage } from '../utils/mockStorage';
-
-// Mock Clinic Settings (Ideally fetched from a Settings Service)
-const CLINIC_DETAILS = {
-    name: "PhysioPro Clinic",
-    address: "123 Health Avenue, Medical District, City - 560001",
-    phone: "+91 98765 43210",
-    email: "accounts@physiopro.com",
-    taxId: "GSTIN: 29ABCDE1234F1Z5"
-};
-
+import { settingsService } from './settingsService';
 class InvoiceService {
 
     async getAllInvoices(patientId?: string): Promise<Invoice[]> {
@@ -37,6 +28,7 @@ class InvoiceService {
         if (existing) return existing;
 
         const patient = mockStorage.getUserById(appointment.patientId);
+        const clinicSettings = await settingsService.getInvoiceDetails();
 
         const item: InvoiceItem = {
             id: Date.now().toString(),
@@ -67,7 +59,7 @@ class InvoiceService {
                 phone: patient?.phone,
                 address: patient && 'address' in patient ? (patient as any).address : ''
             },
-            clinicDetails: CLINIC_DETAILS,
+            clinicDetails: clinicSettings,
 
             items: [item],
             subtotal: item.amount,

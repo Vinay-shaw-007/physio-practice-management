@@ -1,6 +1,8 @@
-import { MedicalRecord } from '@/types';
 import {
+    Add as AddIcon,
+    Delete as DeleteIcon,
     Description as DescriptionIcon,
+    Download as DownloadIcon,
     FilterList as FilterListIcon,
     LocalHospital as HospitalIcon,
     MedicalServices as MedicalServicesIcon,
@@ -20,21 +22,25 @@ import {
     Container,
     FormControl,
     Grid,
+    IconButton,
     InputAdornment,
     InputLabel,
     MenuItem,
     Paper,
     Select,
     TextField,
-    Typography,
+    Tooltip,
+    Typography
 } from '@mui/material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { format } from 'date-fns';
 import React, { useEffect, useState } from 'react';
-import { patientService } from '../../services/patientService';
+import AddMedicalRecordModal from '../../components/patient/AddMedicalRecordModal';
+import { medicalRecordService } from '../../services/medicalRecordService';
 import { useAppSelector } from '../../store/store';
+import { MedicalRecord } from '../../types';
 
 const getRecordIcon = (type: MedicalRecord['type']) => {
     switch (type) {
@@ -63,6 +69,7 @@ const PatientMedicalRecords: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [records, setRecords] = useState<MedicalRecord[]>([]);
     const [filteredRecords, setFilteredRecords] = useState<MedicalRecord[]>([]);
+    const [addModalOpen, setAddModalOpen] = useState(false);
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
@@ -71,16 +78,17 @@ const PatientMedicalRecords: React.FC = () => {
 
     useEffect(() => {
         loadRecords();
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         filterRecords();
     }, [records, searchTerm, typeFilter, dateFilter]);
 
     const loadRecords = async () => {
+        if (!user) return;
         try {
             setLoading(true);
-            const data = await patientService.getMedicalRecords(user?.id || 'patient1');
+            const data = await medicalRecordService.getRecordsByPatientId(user.id);
             setRecords(data);
             setFilteredRecords(data);
         } catch (error) {
@@ -117,22 +125,55 @@ const PatientMedicalRecords: React.FC = () => {
         setFilteredRecords(filtered);
     };
 
+    const handleAddRecord = async (data: any) => {
+        if (!user) return;
+        try {
+            await medicalRecordService.addRecord({
+                ...data,
+                patientId: user.id
+            });
+            await loadRecords(); // Refresh list
+        } catch (error) {
+            console.error('Failed to add record:', error);
+        }
+    };
+
+    const handleDeleteRecord = async (id: string) => {
+        if (window.confirm('Are you sure you want to delete this record?')) {
+            try {
+                await medicalRecordService.deleteRecord(id);
+                await loadRecords();
+            } catch (error) {
+                console.error('Failed to delete record:', error);
+            }
+        }
+    };
+
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns}>
             <Container maxWidth="lg" sx={{ py: 3 }}>
-                <Box sx={{ mb: 4 }}>
-                    <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
-                        Medical Records
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                        View and manage your complete medical history.
-                    </Typography>
+                <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box>
+                        <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
+                            Medical Records
+                        </Typography>
+                        <Typography variant="body1" color="text.secondary">
+                            View and manage your complete medical history.
+                        </Typography>
+                    </Box>
+                    <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={() => setAddModalOpen(true)}
+                    >
+                        Add Record
+                    </Button>
                 </Box>
 
                 {/* Filters */}
                 <Paper sx={{ p: 3, mb: 4, borderRadius: 2 }}>
                     <Grid container spacing={3} alignItems="center">
-                        <Grid size={{ xs: 12, md: 4 }}>
+                        <Grid size={{ xs: 12, md: 4}}>
                             <TextField
                                 fullWidth
                                 placeholder="Search records..."
@@ -199,6 +240,9 @@ const PatientMedicalRecords: React.FC = () => {
                         <Typography variant="h6" color="text.secondary">
                             No records found
                         </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            Upload your first medical record using the "Add Record" button.
+                        </Typography>
                     </Paper>
                 ) : (
                     <Box>
@@ -229,20 +273,40 @@ const PatientMedicalRecords: React.FC = () => {
                                                         </Typography>
                                                     </Box>
                                                 </Box>
-                                                <Chip
-                                                    label={record.type.replace('_', ' ')}
-                                                    size="small"
-                                                    color={getRecordColor(record.type) as any}
-                                                    variant="outlined"
-                                                />
+                                                <Box>
+                                                    <Chip
+                                                        label={record.type.replace('_', ' ')}
+                                                        size="small"
+                                                        color={getRecordColor(record.type) as any}
+                                                        variant="outlined"
+                                                        sx={{ mr: 1 }}
+                                                    />
+                                                    <Tooltip title="Delete Record">
+                                                        <IconButton size="small" onClick={() => handleDeleteRecord(record.id)}>
+                                                            <DeleteIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                </Box>
                                             </Box>
                                             <Typography variant="body1" sx={{ mt: 2, mb: 2 }}>
                                                 {record.description}
                                             </Typography>
-                                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                                {record.tags.map((tag) => (
-                                                    <Chip key={tag} label={tag} size="small" sx={{ bgcolor: 'grey.100' }} />
-                                                ))}
+
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
+                                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                    {record.tags.map((tag) => (
+                                                        <Chip key={tag} label={tag} size="small" sx={{ bgcolor: 'grey.100' }} />
+                                                    ))}
+                                                </Box>
+                                                {record.attachments && record.attachments.length > 0 && (
+                                                    <Button
+                                                        size="small"
+                                                        startIcon={<DownloadIcon />}
+                                                        onClick={() => alert('This would download the file: ' + record.attachments?.[0])}
+                                                    >
+                                                        View Document
+                                                    </Button>
+                                                )}
                                             </Box>
                                         </Grid>
                                     </Grid>
@@ -251,6 +315,12 @@ const PatientMedicalRecords: React.FC = () => {
                         ))}
                     </Box>
                 )}
+
+                <AddMedicalRecordModal
+                    open={addModalOpen}
+                    onClose={() => setAddModalOpen(false)}
+                    onSubmit={handleAddRecord}
+                />
             </Container>
         </LocalizationProvider>
     );

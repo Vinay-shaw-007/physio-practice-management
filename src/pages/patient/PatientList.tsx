@@ -1,17 +1,16 @@
 import { patientService } from '@/services/patientService';
 import { Patient } from '@/types';
 import {
-  Edit as EditIcon,
   FilterList as FilterIcon,
   Search as SearchIcon,
   Visibility as ViewIcon
 } from '@mui/icons-material';
 import {
   Avatar,
-  Backdrop,
   Box,
   Button,
   Chip,
+  CircularProgress,
   Container,
   IconButton,
   InputAdornment,
@@ -27,6 +26,7 @@ import {
   Typography
 } from '@mui/material';
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const PatientList: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -34,6 +34,7 @@ const PatientList: React.FC = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadPatients();
@@ -53,9 +54,16 @@ const PatientList: React.FC = () => {
     p.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Backdrop open={loading} />
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="h4" fontWeight="bold">
           Patients
@@ -131,11 +139,8 @@ const PatientList: React.FC = () => {
                     <Chip label="Active" size="small" color="success" />
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton size="small" color="primary">
+                    <IconButton size="small" color="primary" onClick={() => navigate(`/patients/${patient.id}`)}>
                       <ViewIcon />
-                    </IconButton>
-                    <IconButton size="small">
-                      <EditIcon />
                     </IconButton>
                   </TableCell>
                 </TableRow>

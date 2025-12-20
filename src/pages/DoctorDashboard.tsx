@@ -1,6 +1,8 @@
 // import {
 //   CalendarToday as CalendarIcon,
+//   Event as EventIcon,
 //   Groups as GroupsIcon,
+//   Refresh as RefreshIcon,
 //   AccessTime as TimeIcon,
 //   TrendingUp as TrendingUpIcon
 // } from '@mui/icons-material';
@@ -13,13 +15,14 @@
 //   Chip,
 //   CircularProgress,
 //   Container,
-//   Divider,
 //   Grid,
 //   Paper,
+//   Tab,
+//   Tabs,
 //   Typography,
 //   useTheme
 // } from '@mui/material';
-// import { isToday } from 'date-fns';
+// import { format, isFuture, isToday } from 'date-fns';
 // import React, { useEffect, useState } from 'react';
 // import { useNavigate } from 'react-router-dom';
 // import { appointmentService } from '../services/appointmentService';
@@ -63,26 +66,33 @@
 //   const { user } = useAppSelector((state) => state.auth);
 //   const [loading, setLoading] = useState(true);
 //   const [appointments, setAppointments] = useState<Appointment[]>([]);
+//   const [tabValue, setTabValue] = useState(0); // 0 = Today, 1 = Upcoming
 //   const [stats, setStats] = useState({
 //     todayCount: 0,
 //     pendingCount: 0,
-//     totalPatients: 0, // Mock total
+//     totalPatients: 124,
 //     revenue: 0
 //   });
 
 //   useEffect(() => {
 //     loadDashboardData();
-//   }, []);
+//   }, [user]);
 
 //   const loadDashboardData = async () => {
 //     try {
 //       setLoading(true);
+//       // Default to '1' if user.id is missing (safe fallback for mock mode)
+//       const doctorId = user?.id || '1';
+
+//       console.log(`Fetching appointments for Doctor ID: ${doctorId}`);
+
 //       // Fetch all appointments for this doctor
 //       const allAppts = await appointmentService.getAppointments({
-//         doctorId: user?.id || '1',
+//         doctorId: doctorId,
 //         status: 'ALL'
 //       });
 
+//       console.log("Fetched appointments:", allAppts);
 //       setAppointments(allAppts);
 
 //       // Calculate stats
@@ -95,7 +105,7 @@
 //       setStats({
 //         todayCount: todayAppts.length,
 //         pendingCount: pendingAppts.length,
-//         totalPatients: 0,
+//         totalPatients: 124,
 //         revenue: confirmedRevenue
 //       });
 //     } catch (error) {
@@ -105,10 +115,18 @@
 //     }
 //   };
 
-//   const getTodaysAppointments = () => {
-//     return appointments
-//       .filter(a => isToday(new Date(a.date)) && a.status !== AppointmentStatus.CANCELLED)
-//       .sort((a, b) => a.startTime.localeCompare(b.startTime));
+//   const getDisplayAppointments = () => {
+//     if (tabValue === 0) {
+//       // Today's appointments
+//       return appointments
+//         .filter(a => isToday(new Date(a.date)) && a.status !== AppointmentStatus.CANCELLED)
+//         .sort((a, b) => a.startTime.localeCompare(b.startTime));
+//     } else {
+//       // Upcoming appointments (Future dates)
+//       return appointments
+//         .filter(a => isFuture(new Date(a.date)) && a.status !== AppointmentStatus.CANCELLED)
+//         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+//     }
 //   };
 
 //   if (loading) {
@@ -119,13 +137,17 @@
 //     );
 //   }
 
-//   const todaysAppointments = getTodaysAppointments();
-//   const nextAppointment = todaysAppointments.find(a => {
-//     const [h, m] = a.startTime.split(':').map(Number);
-//     const apptTime = new Date();
-//     apptTime.setHours(h, m, 0, 0);
-//     return apptTime > new Date();
-//   });
+//   const displayList = getDisplayAppointments();
+
+//   // Calculate next immediate patient for the sidebar widget
+//   const nextAppointment = appointments
+//     .filter(a => isToday(new Date(a.date)) && a.status !== AppointmentStatus.CANCELLED)
+//     .find(a => {
+//       const [h, m] = a.startTime.split(':').map(Number);
+//       const apptTime = new Date();
+//       apptTime.setHours(h, m, 0, 0);
+//       return apptTime > new Date();
+//     });
 
 //   return (
 //     <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -133,20 +155,29 @@
 //       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
 //         <Box>
 //           <Typography variant="h4" fontWeight="bold" gutterBottom>
-//             Welcome back, Dr. {user?.name?.split(' ')[1] || 'Doctor'}
+//             Welcome back, {user?.name || 'Dr. Johnson'}
 //           </Typography>
 //           <Typography variant="body1" color="text.secondary">
-//             Here's what's happening in your clinic today.
+//             Here's what's happening in your clinic.
 //           </Typography>
 //         </Box>
-//         <Button variant="contained" onClick={() => navigate('/appointments')}>
-//           View All Appointments
-//         </Button>
+//         <Box sx={{ display: 'flex', gap: 2 }}>
+//           <Button
+//             startIcon={<RefreshIcon />}
+//             onClick={loadDashboardData}
+//             variant="outlined"
+//           >
+//             Refresh Data
+//           </Button>
+//           <Button variant="contained" onClick={() => navigate('/appointments')}>
+//             Manage All
+//           </Button>
+//         </Box>
 //       </Box>
 
 //       {/* Stats Grid */}
 //       <Grid container spacing={3} sx={{ mb: 4 }}>
-//         <Grid size={{xs: 12, sm: 6, md: 3}}>
+//         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
 //           <StatCard
 //             title="Appointments Today"
 //             value={stats.todayCount}
@@ -154,7 +185,7 @@
 //             color={theme.palette.primary.main}
 //           />
 //         </Grid>
-//         <Grid size={{xs: 12, sm: 6, md: 3}}>
+//         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
 //           <StatCard
 //             title="Pending Requests"
 //             value={stats.pendingCount}
@@ -162,43 +193,47 @@
 //             color={theme.palette.warning.main}
 //           />
 //         </Grid>
-//         <Grid size={{xs: 12, sm: 6, md: 3}}>
+//         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
 //           <StatCard
 //             title="Total Patients"
 //             value={stats.totalPatients}
 //             icon={<GroupsIcon />}
 //             color={theme.palette.info.main}
-//             trend=""
+//             trend="+12%"
 //           />
 //         </Grid>
-//         <Grid size={{xs: 12, sm: 6, md: 3}}>
+//         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
 //           <StatCard
 //             title="Total Revenue"
 //             value={`$${stats.revenue}`}
 //             icon={<TrendingUpIcon />}
 //             color={theme.palette.success.main}
-//             trend=""
+//             trend="+5%"
 //           />
 //         </Grid>
 //       </Grid>
 
 //       <Grid container spacing={3}>
-//         {/* Today's Schedule */}
-//         <Grid size={{xs: 12, md: 8}}>
+//         {/* Main Schedule Column */}
+//         <Grid size={{ xs: 12, md: 8 }}>
 //           <Paper sx={{ p: 3, borderRadius: 2 }}>
-//             <Typography variant="h6" fontWeight="bold" gutterBottom>
-//               Today's Schedule
-//             </Typography>
-//             <Divider sx={{ mb: 3 }} />
+//             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+//               <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
+//                 <Tab label="Today's Schedule" />
+//                 <Tab label="Upcoming" />
+//               </Tabs>
+//             </Box>
 
-//             {todaysAppointments.length === 0 ? (
-//               <Box sx={{ py: 4, textAlign: 'center' }}>
+//             {displayList.length === 0 ? (
+//               <Box sx={{ py: 6, textAlign: 'center', bgcolor: 'grey.50', borderRadius: 2 }}>
 //                 <CalendarIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-//                 <Typography color="text.secondary">No appointments scheduled for today</Typography>
+//                 <Typography color="text.secondary">
+//                   {tabValue === 0 ? "No appointments scheduled for today" : "No upcoming appointments found"}
+//                 </Typography>
 //               </Box>
 //             ) : (
 //               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-//                 {todaysAppointments.map((appt) => (
+//                 {displayList.map((appt) => (
 //                   <Paper
 //                     key={appt.id}
 //                     variant="outlined"
@@ -206,11 +241,21 @@
 //                       p: 2,
 //                       display: 'flex',
 //                       alignItems: 'center',
-//                       borderLeft: `4px solid ${appt.status === AppointmentStatus.COMPLETED ? theme.palette.success.main : theme.palette.primary.main
+//                       transition: 'transform 0.2s',
+//                       '&:hover': { transform: 'translateY(-2px)', boxShadow: 1 },
+//                       borderLeft: `4px solid ${appt.status === AppointmentStatus.COMPLETED ? theme.palette.success.main :
+//                           appt.status === AppointmentStatus.NEW ? theme.palette.warning.main :
+//                             theme.palette.primary.main
 //                         }`
 //                     }}
+//                     onClick={() => navigate(`/appointments`)} // Or open detail modal
 //                   >
-//                     <Box sx={{ minWidth: 100 }}>
+//                     <Box sx={{ minWidth: 120 }}>
+//                       {tabValue === 1 && (
+//                         <Typography variant="caption" display="block" color="text.secondary">
+//                           {format(new Date(appt.date), 'MMM d, yyyy')}
+//                         </Typography>
+//                       )}
 //                       <Typography variant="h6" fontWeight="bold">
 //                         {appt.startTime}
 //                       </Typography>
@@ -220,16 +265,19 @@
 //                     </Box>
 //                     <Box sx={{ flexGrow: 1, ml: 2 }}>
 //                       <Typography variant="subtitle1" fontWeight="bold">
-//                         {appt.metadata?.patientName || 'Patient'}
+//                         {appt.metadata?.patientName || 'Unknown Patient'}
 //                       </Typography>
-//                       <Typography variant="body2" color="text.secondary">
+//                       <Typography variant="body2" color="text.secondary" noWrap>
 //                         {appt.notes || 'No notes provided'}
 //                       </Typography>
 //                     </Box>
 //                     <Chip
 //                       label={appt.status}
 //                       size="small"
-//                       color={appt.status === AppointmentStatus.COMPLETED ? 'success' : 'primary'}
+//                       color={
+//                         appt.status === AppointmentStatus.COMPLETED ? 'success' :
+//                           appt.status === AppointmentStatus.NEW ? 'warning' : 'primary'
+//                       }
 //                       variant="outlined"
 //                     />
 //                   </Paper>
@@ -239,13 +287,13 @@
 //           </Paper>
 //         </Grid>
 
-//         {/* Next Up / Quick Actions */}
-//         <Grid size={{ xs: 12, md: 4}}>
-//           {/* Next Patient Card */}
+//         {/* Right Sidebar */}
+//         <Grid size={{ xs: 12, md: 4 }}>
+//           {/* Up Next Card */}
 //           <Card sx={{ mb: 3, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
 //             <CardContent>
 //               <Typography variant="overline" sx={{ opacity: 0.8 }}>
-//                 Up Next
+//                 Up Next (Today)
 //               </Typography>
 //               {nextAppointment ? (
 //                 <>
@@ -269,16 +317,16 @@
 //                     variant="contained"
 //                     color="secondary"
 //                     fullWidth
-//                     onClick={() => navigate(`/appointments/${nextAppointment.id}`)}
+//                     onClick={() => navigate(`/appointments`)}
 //                   >
 //                     View Details
 //                   </Button>
 //                 </>
 //               ) : (
 //                 <Box sx={{ py: 2 }}>
-//                   <Typography variant="h6">No upcoming patients</Typography>
+//                   <Typography variant="h6">No pending patients</Typography>
 //                   <Typography variant="body2" sx={{ opacity: 0.8 }}>
-//                     You're all caught up for now!
+//                     You're all caught up for today!
 //                   </Typography>
 //                 </Box>
 //               )}
@@ -290,12 +338,24 @@
 //             <Typography variant="h6" fontWeight="bold" gutterBottom>
 //               Quick Actions
 //             </Typography>
-//             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-//               <Button variant="outlined" fullWidth sx={{ justifyContent: 'flex-start' }} onClick={() => navigate('/availability')}>
+//             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+//               <Button
+//                 variant="outlined"
+//                 startIcon={<EventIcon />}
+//                 sx={{ justifyContent: 'flex-start', py: 1 }}
+//                 fullWidth
+//                 onClick={() => navigate('/availability')}
+//               >
 //                 Manage Availability
 //               </Button>
-//               <Button variant="outlined" fullWidth sx={{ justifyContent: 'flex-start' }} onClick={() => navigate('/services')}>
-//                 Update Services
+//               <Button
+//                 variant="outlined"
+//                 startIcon={<GroupsIcon />}
+//                 sx={{ justifyContent: 'flex-start', py: 1 }}
+//                 fullWidth
+//                 onClick={() => navigate('/patients')}
+//               >
+//                 Patient Directory
 //               </Button>
 //             </Box>
 //           </Paper>
@@ -378,8 +438,8 @@ const DoctorDashboard: React.FC = () => {
   const [tabValue, setTabValue] = useState(0); // 0 = Today, 1 = Upcoming
   const [stats, setStats] = useState({
     todayCount: 0,
-    pendingCount: 0,
-    totalPatients: 124,
+    upcomingCount: 0,
+    totalPatients: 0,
     revenue: 0
   });
 
@@ -390,10 +450,7 @@ const DoctorDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      // Default to '1' if user.id is missing (safe fallback for mock mode)
       const doctorId = user?.id || '1';
-
-      console.log(`Fetching appointments for Doctor ID: ${doctorId}`);
 
       // Fetch all appointments for this doctor
       const allAppts = await appointmentService.getAppointments({
@@ -401,20 +458,33 @@ const DoctorDashboard: React.FC = () => {
         status: 'ALL'
       });
 
-      console.log("Fetched appointments:", allAppts);
       setAppointments(allAppts);
 
-      // Calculate stats
-      const todayAppts = allAppts.filter(a => isToday(new Date(a.date)) && a.status !== AppointmentStatus.CANCELLED);
-      const pendingAppts = allAppts.filter(a => a.status === AppointmentStatus.NEW);
+      // 1. Appointments Today
+      const todayAppts = allAppts.filter(a =>
+        isToday(new Date(a.date)) &&
+        a.status !== AppointmentStatus.CANCELLED
+      );
+
+      // 2. Upcoming (Future Confirmed) - Replaces "Pending"
+      const upcomingAppts = allAppts.filter(a =>
+        isFuture(new Date(a.date)) &&
+        a.status !== AppointmentStatus.CANCELLED &&
+        a.status !== AppointmentStatus.COMPLETED
+      );
+
+      // 3. Unique Patients
+      const uniquePatients = new Set(allAppts.map(a => a.patientId)).size;
+
+      // 4. Revenue (Completed/Confirmed)
       const confirmedRevenue = allAppts
         .filter(a => a.status === AppointmentStatus.COMPLETED || a.status === AppointmentStatus.CONFIRMED)
         .reduce((sum, a) => sum + (a.amount || 0), 0);
 
       setStats({
         todayCount: todayAppts.length,
-        pendingCount: pendingAppts.length,
-        totalPatients: 124,
+        upcomingCount: upcomingAppts.length,
+        totalPatients: uniquePatients,
         revenue: confirmedRevenue
       });
     } catch (error) {
@@ -448,7 +518,7 @@ const DoctorDashboard: React.FC = () => {
 
   const displayList = getDisplayAppointments();
 
-  // Calculate next immediate patient for the sidebar widget
+  // Calculate next immediate patient
   const nextAppointment = appointments
     .filter(a => isToday(new Date(a.date)) && a.status !== AppointmentStatus.CANCELLED)
     .find(a => {
@@ -484,7 +554,7 @@ const DoctorDashboard: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Using Grid V2 size prop */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
@@ -496,8 +566,8 @@ const DoctorDashboard: React.FC = () => {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <StatCard
-            title="Pending Requests"
-            value={stats.pendingCount}
+            title="Upcoming Sessions"
+            value={stats.upcomingCount}
             icon={<TimeIcon />}
             color={theme.palette.warning.main}
           />
@@ -508,7 +578,7 @@ const DoctorDashboard: React.FC = () => {
             value={stats.totalPatients}
             icon={<GroupsIcon />}
             color={theme.palette.info.main}
-            trend="+12%"
+            trend=""
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -517,7 +587,7 @@ const DoctorDashboard: React.FC = () => {
             value={`$${stats.revenue}`}
             icon={<TrendingUpIcon />}
             color={theme.palette.success.main}
-            trend="+5%"
+            trend=""
           />
         </Grid>
       </Grid>
@@ -552,12 +622,13 @@ const DoctorDashboard: React.FC = () => {
                       alignItems: 'center',
                       transition: 'transform 0.2s',
                       '&:hover': { transform: 'translateY(-2px)', boxShadow: 1 },
-                      borderLeft: `4px solid ${appt.status === AppointmentStatus.COMPLETED ? theme.palette.success.main :
-                          appt.status === AppointmentStatus.NEW ? theme.palette.warning.main :
-                            theme.palette.primary.main
+                      borderLeft: `4px solid ${appt.status === AppointmentStatus.COMPLETED
+                          ? theme.palette.success.main
+                          : theme.palette.primary.main
                         }`
                     }}
-                    onClick={() => navigate(`/appointments`)} // Or open detail modal
+                    onClick={() => navigate(`/appointments`)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <Box sx={{ minWidth: 120 }}>
                       {tabValue === 1 && (
@@ -583,10 +654,7 @@ const DoctorDashboard: React.FC = () => {
                     <Chip
                       label={appt.status}
                       size="small"
-                      color={
-                        appt.status === AppointmentStatus.COMPLETED ? 'success' :
-                          appt.status === AppointmentStatus.NEW ? 'warning' : 'primary'
-                      }
+                      color={appt.status === AppointmentStatus.COMPLETED ? 'success' : 'primary'}
                       variant="outlined"
                     />
                   </Paper>

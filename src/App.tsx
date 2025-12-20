@@ -21,13 +21,13 @@ import SettingsPage from './pages/Settings';
 // Hooks
 
 // Types
-import PatientLayout from './components/common/patient/PatientLayout';
+import PatientDetails from './pages/doctor/PatientDetails';
+import DoctorProfile from './pages/DoctorProfile';
 import PatientAppointments from './pages/patient/PatientAppointments';
 import PatientBilling from './pages/patient/PatientBilling';
 import PatientMedicalRecords from './pages/patient/PatientMedicalRecords';
-import PatientProfile from './pages/patient/PatientProfile';
+import PatientSettings from './pages/patient/PatientSettings';
 import { UserRole } from './types';
-import DoctorProfile from './pages/DoctorProfile';
 
 const App: React.FC = () => {
     // Show loading screen while validating token
@@ -75,6 +75,7 @@ const App: React.FC = () => {
                         <Route path="appointments" element={<Appointments />} />
                         <Route path="appointments/:id" element={<Appointments />} />
                         <Route path="patients" element={<PatientList />} />
+                        <Route path="/patients/:id" element={<PatientDetails />} />
                         <Route path="availability" element={<AvailabilitySettings />} />
                         <Route path="services" element={<ServiceConfiguration />} />
                         <Route path="settings" element={<SettingsPage />} />
@@ -85,14 +86,14 @@ const App: React.FC = () => {
                 {/* Protected Patient Routes */}
                 <Route path="/patient" element={<ProtectedRoute allowedRoles={[UserRole.PATIENT]} />}>
                     {/* Patient Layout Routes */}
-                    <Route element={<PatientLayout />}>
+                    <Route element={<Layout />}>
                         <Route index element={<Navigate to="/patient/dashboard" replace />} />
                         <Route path="dashboard" element={<PatientDashboard />} />
                         <Route path="appointments" element={<PatientAppointments />} />
                         <Route path="medical-records" element={<PatientMedicalRecords />} />
                         <Route path="billing" element={<PatientBilling />} />
-                        <Route path="profile" element={<PatientProfile />} />
-                        <Route path="settings" element={<div>Settings - Coming Soon</div>} />
+                        <Route path="profile" element={<Navigate to="/patient/settings" replace />} />
+                        <Route path="settings" element={<PatientSettings />} />
                     </Route>
 
                     {/* Standalone Patient Routes (without layout) */}
