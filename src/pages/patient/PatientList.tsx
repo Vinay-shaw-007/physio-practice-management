@@ -1,5 +1,6 @@
+import { useAuth } from '@/hooks/useAuth';
 import { patientService } from '@/services/patientService';
-import { Patient } from '@/types';
+import { Patient, UserRole } from '@/types';
 import {
   FilterList as FilterIcon,
   Search as SearchIcon,
@@ -35,6 +36,7 @@ const PatientList: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     loadPatients();
@@ -42,8 +44,20 @@ const PatientList: React.FC = () => {
 
   const loadPatients = async () => {
     try {
-      const data = await patientService.getAllPatients();
+      let data: Patient[] = [];
+
+      // Check if the user is a doctor
+      if (user?.role === UserRole.DOCTOR) {
+        // Only fetch patients linked to this doctor
+        data = await patientService.getPatientsForDoctor(user.id);
+      } else {
+        // If Admin (or other), fetch all patients
+        data = await patientService.getAllPatients();
+      }
+
       setPatients(data);
+    } catch (error) {
+      console.error("Failed to load patients", error);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import { Invoice } from '@/types/booking';
+import { Invoice } from '@/types/invoice';
 import { mockStorage } from '@/utils/mockStorage';
 import { mockPatient } from '@/utils/utility';
 import { Appointment, AppointmentStatus, MedicalRecord, Patient, UserRole } from '../types';
@@ -73,7 +73,7 @@ class PatientService {
     async updatePatientProfile(patientId: string, updates: Partial<Patient>): Promise<Patient> {
         await new Promise(resolve => setTimeout(resolve, 300));
         // In a real app, this would update the backend
-        
+
         const realUser = mockStorage.getUserById(patientId);
         const updated = {
             ...realUser,
@@ -97,7 +97,7 @@ class PatientService {
             avatar: mockUrl,
             updatedAt: new Date(),
         } as Patient;
-        
+
         mockStorage.saveUser(data);
 
         return mockUrl;
@@ -109,9 +109,28 @@ class PatientService {
         // Return all users who are PATIENTS
         const allUsers = mockStorage.getUsers();
         const patients = allUsers.filter(u => u.role === UserRole.PATIENT);
-        
+
         // Cast them to Patient type (merging with blank to be safe)
         return patients.map(p => ({ ...mockPatient, ...p } as Patient));
+    }
+
+    // NEW: Get patients specific to a doctor (those who have booked appointments)
+    async getPatientsForDoctor(doctorId: string): Promise<Patient[]> {
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // 1. Get all appointments for this doctor
+        // We use the existing getAppointments filter
+        const appointments = await appointmentService.getAppointments({ doctorId });
+
+        // 2. Extract unique patient IDs from those appointments
+        // (A patient might have visited 5 times, we only want their ID once)
+        const patientIds = Array.from(new Set(appointments.map(a => a.patientId)));
+
+        // 3. Get all patients first (in a real DB, you would do a "WHERE id IN (...)" query)
+        const allPatients = await this.getAllPatients();
+
+        // 4. Filter the list to only include those patients
+        return allPatients.filter(p => patientIds.includes(p.id));
     }
 
     // --- Medical Records ---
@@ -122,7 +141,7 @@ class PatientService {
         // Filter records for this SPECIFIC patient
         const allRecords = mockStorage.getMedicalRecords(mockMedicalRecords);
         const patientRecords = allRecords.filter(r => r.patientId === patientId);
-        
+
         const sorted = patientRecords.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
         return limit ? sorted.slice(0, limit) : sorted;
     }
@@ -158,7 +177,7 @@ class PatientService {
         const appointments = await appointmentService.getAppointments({ patientId });
 
         const upcoming = appointments.filter(a =>
-            [AppointmentStatus.NEW, AppointmentStatus.CONFIRMED, AppointmentStatus.RESCHEDULED].includes(a.status)
+            [AppointmentStatus.CONFIRMED, AppointmentStatus.RESCHEDULED].includes(a.status)
         ).length;
 
         const completed = appointments.filter(a => a.status === AppointmentStatus.COMPLETED).length;

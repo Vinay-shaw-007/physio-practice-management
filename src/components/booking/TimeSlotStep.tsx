@@ -1,15 +1,16 @@
+// import { AccessTime as TimeIcon } from '@mui/icons-material';
 // import {
+//     Alert,
 //     Box,
 //     Button,
 //     CircularProgress,
 //     Grid,
-//     Typography,
-//     Alert
+//     Typography
 // } from '@mui/material';
 // import { format } from 'date-fns';
 // import React, { useEffect, useState } from 'react';
-// import { bookingService, AvailableTimeSlot } from '../../services/bookingService';
-// import { AccessTime as TimeIcon } from '@mui/icons-material';
+// import { bookingService } from '../../services/bookingService';
+// import { AvailableTimeSlot } from '@/types/booking';
 
 // interface TimeSlotStepProps {
 //     doctorId: string;
@@ -17,6 +18,7 @@
 //     serviceDuration: number;
 //     selectedTime: string;
 //     onSelect: (time: string) => void;
+//     serviceId: string; // NEW PROP
 // }
 
 // const TimeSlotStep: React.FC<TimeSlotStepProps> = ({
@@ -24,20 +26,23 @@
 //     date,
 //     serviceDuration,
 //     selectedTime,
-//     onSelect
+//     onSelect,
+//     serviceId // Receive it here
 // }) => {
 //     const [slots, setSlots] = useState<AvailableTimeSlot[]>([]);
 //     const [loading, setLoading] = useState(true);
 
 //     useEffect(() => {
-//         let isMounted = true; // prevent setting state on unmounted component
+//         let isMounted = true;
 
 //         const loadSlots = async () => {
 //             setLoading(true);
 //             try {
+//                 // Pass serviceId to the generator
 //                 const availableSlots = await bookingService.generateAvailableTimeSlots(
 //                     doctorId,
 //                     date,
+//                     serviceId,
 //                     serviceDuration
 //                 );
 //                 if (isMounted) {
@@ -55,8 +60,7 @@
 
 //         return () => { isMounted = false; };
 
-//         // FIX: Use date.getTime() to compare primitive values, avoiding infinite loops
-//     }, [doctorId, date.getTime(), serviceDuration]);
+//     }, [doctorId, date.getTime(), serviceDuration, serviceId]);
 
 //     if (loading) {
 //         return (
@@ -87,7 +91,7 @@
 
 //             <Grid container spacing={2} justifyContent="center" sx={{ maxWidth: 800, mx: 'auto' }}>
 //                 {slots.map((slot) => (
-//                     <Grid size={{ xs: 6, sm: 4, md: 3}} key={slot.startTime}>
+//                     <Grid size={{ xs: 6, sm: 4, md: 3 }} key={slot.startTime}>
 //                         <Button
 //                             variant={selectedTime === slot.startTime ? 'contained' : 'outlined'}
 //                             color="primary"
@@ -110,69 +114,35 @@
 // };
 
 // export default TimeSlotStep;
+
+import { AvailableTimeSlot } from '@/types/booking';
 import { AccessTime as TimeIcon } from '@mui/icons-material';
 import {
     Alert,
     Box,
     Button,
     CircularProgress,
-    Grid,
+    Grid, 
     Typography
 } from '@mui/material';
 import { format } from 'date-fns';
-import React, { useEffect, useState } from 'react';
-import { bookingService } from '../../services/bookingService';
-import { AvailableTimeSlot } from '@/types/booking';
+import React from 'react';
 
 interface TimeSlotStepProps {
-    doctorId: string;
+    availableTimeSlots: AvailableTimeSlot[];
+    selectedTimeSlot: string | null;
+    onSelectTimeSlot: (time: string) => void;
+    loading: boolean;
     date: Date;
-    serviceDuration: number;
-    selectedTime: string;
-    onSelect: (time: string) => void;
-    serviceId: string; // NEW PROP
 }
 
 const TimeSlotStep: React.FC<TimeSlotStepProps> = ({
-    doctorId,
-    date,
-    serviceDuration,
-    selectedTime,
-    onSelect,
-    serviceId // Receive it here
+    availableTimeSlots,
+    selectedTimeSlot,
+    onSelectTimeSlot,
+    loading,
+    date
 }) => {
-    const [slots, setSlots] = useState<AvailableTimeSlot[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        let isMounted = true;
-
-        const loadSlots = async () => {
-            setLoading(true);
-            try {
-                // Pass serviceId to the generator
-                const availableSlots = await bookingService.generateAvailableTimeSlots(
-                    doctorId,
-                    date,
-                    serviceId,
-                    serviceDuration
-                );
-                if (isMounted) {
-                    setSlots(availableSlots);
-                }
-            } catch (error) {
-                console.error('Failed to load slots', error);
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        };
-        loadSlots();
-
-        return () => { isMounted = false; };
-
-    }, [doctorId, date.getTime(), serviceDuration, serviceId]);
 
     if (loading) {
         return (
@@ -182,7 +152,7 @@ const TimeSlotStep: React.FC<TimeSlotStepProps> = ({
         );
     }
 
-    if (slots.length === 0) {
+    if (availableTimeSlots.length === 0) {
         return (
             <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Alert severity="warning" sx={{ maxWidth: 400, mx: 'auto' }}>
@@ -202,18 +172,18 @@ const TimeSlotStep: React.FC<TimeSlotStepProps> = ({
             </Typography>
 
             <Grid container spacing={2} justifyContent="center" sx={{ maxWidth: 800, mx: 'auto' }}>
-                {slots.map((slot) => (
+                {availableTimeSlots.map((slot) => (
                     <Grid size={{ xs: 6, sm: 4, md: 3 }} key={slot.startTime}>
                         <Button
-                            variant={selectedTime === slot.startTime ? 'contained' : 'outlined'}
+                            variant={selectedTimeSlot === slot.startTime ? 'contained' : 'outlined'}
                             color="primary"
                             fullWidth
-                            onClick={() => onSelect(slot.startTime)}
+                            onClick={() => onSelectTimeSlot(slot.startTime)}
                             startIcon={<TimeIcon />}
                             sx={{
                                 py: 1.5,
                                 borderRadius: 2,
-                                borderWidth: selectedTime === slot.startTime ? 0 : 1
+                                borderWidth: selectedTimeSlot === slot.startTime ? 0 : 1
                             }}
                         >
                             {slot.startTime}

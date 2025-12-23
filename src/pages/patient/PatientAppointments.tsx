@@ -795,15 +795,30 @@ const PatientAppointments: React.FC = () => {
         }
     };
 
+    // const filteredAppointments = appointments.filter(a => {
+    //     const apptDate = new Date(a.date);
+    //     apptDate.setHours(0, 0, 0, 0);
+    //     const today = new Date();
+    //     today.setHours(0, 0, 0, 0);
+
+    //     const isUpcoming = apptDate >= today &&
+    //         a.status !== AppointmentStatus.CANCELLED &&
+    //         a.status !== AppointmentStatus.COMPLETED;
+
+    //     return tabValue === 0 ? isUpcoming : !isUpcoming;
+    // });
+
     const filteredAppointments = appointments.filter(a => {
         const apptDate = new Date(a.date);
         apptDate.setHours(0, 0, 0, 0);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        // Active / Upcoming
         const isUpcoming = apptDate >= today &&
             a.status !== AppointmentStatus.CANCELLED &&
-            a.status !== AppointmentStatus.COMPLETED;
+            a.status !== AppointmentStatus.COMPLETED &&
+            a.status !== AppointmentStatus.ABSENT; // Added ABSENT to exclusion
 
         return tabValue === 0 ? isUpcoming : !isUpcoming;
     });
@@ -885,6 +900,10 @@ const PatientAppointments: React.FC = () => {
                                                     >
                                                         View Summary
                                                     </Button>
+                                                )}
+                                                {/* If ABSENT, show a static label or nothing */}
+                                                {appt.status === AppointmentStatus.ABSENT && (
+                                                    <Chip label="Missed" color="warning" variant="outlined" />
                                                 )}
                                                 {/* You can add a "Book Again" button here too if you want */}
                                             </Grid>

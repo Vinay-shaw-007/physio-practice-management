@@ -9,6 +9,7 @@ export enum AppointmentStatus {
   RESCHEDULED = 'RESCHEDULED',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  ABSENT = 'ABSENT'
 }
 
 export enum ServiceType {

@@ -32,4 +32,5 @@ export interface Doctor extends User {
   yearsOfExperience?: number;
   bio?: string;
   consultationFee?: number;
+  services?: string[];
 }
